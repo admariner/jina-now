@@ -77,25 +77,19 @@ def call_index(
                 print(traceback.format_exc())
             sleep(1)
 
-    response = client.post(
+    if response := client.post(
         '/index',
         request_size=request_size,
         inputs=dataset,
         show_progress=True,
         parameters=parameters,
-    )
-
-    if response:
+    ):
         return DocumentArray.from_json(response.to_json())
 
 
 def estimate_request_size(index):
-    if len(index) > 30:
-        sample = random.sample(index, 30)
-    else:
-        sample = index
-    size = sum([sys.getsizeof(x.content) for x in sample]) / 30
+    sample = random.sample(index, 30) if len(index) > 30 else index
+    size = sum(sys.getsizeof(x.content) for x in sample) / 30
     max_size = 50000
     max_request_size = 128
-    request_size = max(min(max_request_size, int(max_size / size)), 1)
-    return request_size
+    return max(min(max_request_size, int(max_size / size)), 1)

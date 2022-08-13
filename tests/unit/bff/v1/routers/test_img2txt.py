@@ -9,7 +9,8 @@ from starlette import status
 def test_text_index_fails_with_no_flow_running(client: requests.Session):
     with pytest.raises(ConnectionError):
         client.post(
-            f'/api/v1/image-to-text/index', json={'texts': ['Hello'], 'uris': ['']}
+            '/api/v1/image-to-text/index',
+            json={'texts': ['Hello'], 'uris': ['']},
         )
 
 
@@ -18,26 +19,19 @@ def test_text_search_fails_with_no_flow_running(
 ):
     with pytest.raises(ConnectionError):
         client.post(
-            f'/api/v1/image-to-text/search',
-            json={'image': base64_image_string},
+            '/api/v1/image-to-text/search', json={'image': base64_image_string}
         )
 
 
 def test_text_search_fails_with_incorrect_query(client):
-    response = client.post(
-        f'/api/v1/image-to-text/search',
-        json={'image': 'hello'},
-    )
+    response = client.post('/api/v1/image-to-text/search', json={'image': 'hello'})
     assert response.status_code == 500
     assert 'Not a correct encoded query' in response.text
 
 
 def test_text_search_fails_with_emtpy_query(client: requests.Session):
     with pytest.raises(ValueError):
-        client.post(
-            f'/api/v1/image-to-text/search',
-            json={},
-        )
+        client.post('/api/v1/image-to-text/search', json={})
 
 
 def test_text_index(

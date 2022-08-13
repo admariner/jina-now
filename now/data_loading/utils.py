@@ -30,7 +30,7 @@ def upload_to_gcloud_bucket(project: str, bucket: str, location: str, fname: str
     with open(fname, 'rb') as f:
         content = io.BytesIO(f.read())
 
-    tensor = bucket.blob(location + '/' + fname)
+    tensor = bucket.blob(f'{location}/{fname}')
     tensor.upload_from_file(content, timeout=7200)
 
 

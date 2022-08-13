@@ -26,9 +26,9 @@ def search(attribute_name, attribute_value, jwt, top_k=TOP_K):
     params = get_query_params()
 
     if params.host == 'gateway':  # need to call now-bff as we communicate between pods
-        domain = f"http://now-bff"
+        domain = "http://now-bff"
     else:
-        domain = f"https://nowrun.jina.ai"
+        domain = "https://nowrun.jina.ai"
     URL_HOST = (
         f"{domain}/api/v1/{params.input_modality}-to-{params.output_modality}/search"
     )
@@ -81,7 +81,7 @@ def search_by_image(document: Document, jwt) -> DocumentArray:
     Wrap file in Jina Document for searching, and do all necessary conversion to make similar to indexed Docs
     """
     st.session_state.search_count += 1
-    print(f"Searching by image")
+    print("Searching by image")
     query_doc = document
     if query_doc.blob == b'':
         if query_doc.tensor is not None:
@@ -102,9 +102,8 @@ def search_by_audio(document: Document, jwt):
     for doc in result:
         if doc.tags['track_id'] in already_added_tracks or 'location' not in doc.tags:
             continue
-        else:
-            final_result.append(doc)
-            already_added_tracks.add(doc.tags['track_id'])
+        final_result.append(doc)
+        already_added_tracks.add(doc.tags['track_id'])
         if len(final_result) >= TOP_K:
             break
     return final_result

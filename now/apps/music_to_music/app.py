@@ -99,7 +99,7 @@ class MusicToMusic(JinaNOWApp):
 
         # can reuse large part of other code but need to make some adjustments
         if user_input.data in pre_trained_head_map:
-            print(f'⚡️ Using cached hub model for speed')
+            print('⚡️ Using cached hub model for speed')
 
             env_dict[
                 'LINEAR_HEAD_NAME'
@@ -116,14 +116,13 @@ class MusicToMusic(JinaNOWApp):
 
         def convert_fn(d: Document):
             try:
-                if d.blob == b'':
-                    if d.uri:
-                        if d.uri.startswith(f'data:{d.mime_type}'):
-                            d.load_uri_to_blob()
-                        else:
-                            AudioSegment.from_file(d.uri)  # checks if file is valid
-                            with open(d.uri, 'rb') as fh:
-                                d.blob = fh.read()
+                if d.blob == b'' and d.uri:
+                    if d.uri.startswith(f'data:{d.mime_type}'):
+                        d.load_uri_to_blob()
+                    else:
+                        AudioSegment.from_file(d.uri)  # checks if file is valid
+                        with open(d.uri, 'rb') as fh:
+                            d.blob = fh.read()
                 return d
             except Exception as e:
                 return d

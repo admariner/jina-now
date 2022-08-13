@@ -51,7 +51,7 @@ class InquirerControl(FormattedTextControl):
                 if searching_first_choice:
                     self.selected_option_index = i  # found the first choice
                     searching_first_choice = False
-                if default and (default == i or default == c):
+                if default and default in [i, c]:
                     self.selected_option_index = i  # default choice exists
                     searching_first_choice = False
 
@@ -80,8 +80,13 @@ class InquirerControl(FormattedTextControl):
                 if selected:
                     tokens.append(('[SetCursorPosition]', ''))
                 if choice[2]:  # disabled
-                    tokens.append(('class:Selected' if selected else '',
-                                   '- %s (%s)' % (choice[0], choice[2])))
+                    tokens.append(
+                        (
+                            'class:Selected' if selected else '',
+                            f'- {choice[0]} ({choice[2]})',
+                        )
+                    )
+
                 else:
                     try:
                         tokens.append(('class:Selected' if selected else '', str(choice[0]),
@@ -103,7 +108,7 @@ class InquirerControl(FormattedTextControl):
 
 def question(message, **kwargs):
     # TODO disabled, dict choices
-    if not 'choices' in kwargs:
+    if 'choices' not in kwargs:
         raise PromptParameterException('choices')
 
     choices = kwargs.pop('choices', None)
@@ -118,9 +123,9 @@ def question(message, **kwargs):
         tokens = []
 
         tokens.append(('class:questionmark', qmark))
-        tokens.append(('class:question', ' %s ' % message))
+        tokens.append(('class:question', f' {message} '))
         if ic.answered:
-            tokens.append(('class:answer', ' ' + ic.get_selection()[0]))
+            tokens.append(('class:answer', f' {ic.get_selection()[0]}'))
         else:
             tokens.append(('class:instruction', ' (Use arrow keys)'))
         return tokens

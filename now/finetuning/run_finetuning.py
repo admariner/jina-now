@@ -54,7 +54,7 @@ def finetune(
     if not finetune_settings.perform_finetuning:
         return
 
-    print(f'🔧 Perform finetuning!')
+    print('🔧 Perform finetuning!')
     dataset = _maybe_add_embeddings(
         app_instance=app_instance,
         user_input=user_input,
@@ -78,14 +78,15 @@ def _finetune_layer(
     finetune_ds: FinetuneDataset,
     finetune_settings: FinetuneSettings,
 ) -> Tuple[str, str]:
-    assert all([d.embedding is not None for d in finetune_ds.index])
+    assert all(d.embedding is not None for d in finetune_ds.index)
 
     print('💪 fine-tuning:')
     input_size = (
-        finetune_settings.pre_trained_embedding_size
-        if not finetune_settings.bi_modal
-        else finetune_settings.pre_trained_embedding_size * 2
+        finetune_settings.pre_trained_embedding_size * 2
+        if finetune_settings.bi_modal
+        else finetune_settings.pre_trained_embedding_size
     )
+
     finetuner.login()
 
     callbacks = [
@@ -101,9 +102,9 @@ def _finetune_layer(
         ),
     ]
     if 'NOW_CI_RUN' in os.environ:
-        experiment_name = 'now-ci-finetuning-' + _get_random_string(8)
+        experiment_name = f'now-ci-finetuning-{_get_random_string(8)}'
     else:
-        experiment_name = 'now-finetuning-' + _get_random_string(8)
+        experiment_name = f'now-finetuning-{_get_random_string(8)}'
     print(f'🧪 Creating finetune experiment ({experiment_name})')
     finetuner.create_experiment(experiment_name)
 
@@ -113,7 +114,7 @@ def _finetune_layer(
             'input_size': input_size,
             'hidden_sizes': finetune_settings.hidden_sizes,
             'l2': True,
-            'bias': False if finetune_settings.bi_modal else True,
+            'bias': not finetune_settings.bi_modal,
         },
         train_data=finetune_ds.train,
         experiment_name=experiment_name,
@@ -122,6 +123,7 @@ def _finetune_layer(
         learning_rate=finetune_settings.learning_rate,
         run_name=experiment_name,
     )
+
 
     run_failed = False
     with yaspin_extended(
@@ -171,10 +173,7 @@ def get_bi_modal_embedding(doc) -> np.ndarray:
             f'Received doc (id={doc.id}) with either no text and blob or both.'
         )
     zeros = np.zeros(doc.embedding.shape)
-    if doc.text:
-        order = (zeros, doc.embedding)
-    else:
-        order = (doc.embedding, zeros)
+    order = (zeros, doc.embedding) if doc.text else (doc.embedding, zeros)
     return np.concatenate(order, dtype=np.float32)
 
 
@@ -204,9 +203,9 @@ def _maybe_add_embeddings(
     kubectl_path: str,
 ):
     with yaspin_extended(
-        sigmap=sigmap, text="Check if embeddings already exist", color="green"
-    ) as spinner:
-        if all([d.embedding is not None for d in dataset]):
+            sigmap=sigmap, text="Check if embeddings already exist", color="green"
+        ) as spinner:
+        if all(d.embedding is not None for d in dataset):
             spinner.ok('👍')
             return dataset
         else:
@@ -235,9 +234,10 @@ def _maybe_add_embeddings(
     for doc in result:
         dataset[doc.id].embedding = doc.embedding
 
-    assert all([d.embedding is not None for d in dataset]), (
+    assert all(d.embedding is not None for d in dataset), (
         "Some docs slipped through and" " still have no embedding..."
     )
+
 
     # removes normal flow as it is unused from now on
     if user_input.deployment_type == 'local':

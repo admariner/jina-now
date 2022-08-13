@@ -13,10 +13,10 @@ def colorize_json(data):
         from pygments import highlight, lexers, formatters
         if isinstance(data, bytes):
             data = data.decode('UTF-8')
-        colorful_json = highlight(data,
-                                  lexers.JsonLexer(),
-                                  formatters.TerminalFormatter())
-        return colorful_json
+        return highlight(
+            data, lexers.JsonLexer(), formatters.TerminalFormatter()
+        )
+
     except ModuleNotFoundError:
         return data
 

@@ -49,17 +49,18 @@ def wait_for_lb(lb_name, ns):
 def wait_for_all_pods_in_ns(f, ns, max_wait=1800):
     config.load_kube_config()
     v1 = k8s_client.CoreV1Api()
-    for i in range(max_wait):
+    for _ in range(max_wait):
         pods = v1.list_namespaced_pod(ns).items
         not_ready = [
             'x'
             for pod in pods
             if not pod.status
             or not pod.status.container_statuses
-            or not len(pod.status.container_statuses) == 1
+            or len(pod.status.container_statuses) != 1
             or not pod.status.container_statuses[0].ready
         ]
-        if len(not_ready) == 0 and f.num_deployments == len(pods):
+
+        if not not_ready and f.num_deployments == len(pods):
             return
         sleep(1)
 
@@ -105,23 +106,22 @@ def deploy_k8s(f, ns, tmpdir, kubectl_path):
 
 
 def _extend_flow_yaml(flow_yaml, tmpdir, secured):
-    if secured:
-        f = Flow.load_config(flow_yaml)
-        g = Flow().add(
-            name='security_check',
-            uses='jinahub+docker://SecurityExecutor/v0.1',
-            uses_with={
-                'owner_id': '${{ ENV.OWNER_ID }}',
-                'email_ids': '${{ ENV.EMAIL_IDS }}',
-            },
-        )
-        for node_name, node in f._deployment_nodes.items():
-            g = g.add(**vars(node.args))
-        mod_path = os.path.join(tmpdir, 'mod.yml')
-        g.save_config(mod_path)
-        return mod_path
-    else:
+    if not secured:
         return flow_yaml
+    f = Flow.load_config(flow_yaml)
+    g = Flow().add(
+        name='security_check',
+        uses='jinahub+docker://SecurityExecutor/v0.1',
+        uses_with={
+            'owner_id': '${{ ENV.OWNER_ID }}',
+            'email_ids': '${{ ENV.EMAIL_IDS }}',
+        },
+    )
+    for node_name, node in f._deployment_nodes.items():
+        g = g.add(**vars(node.args))
+    mod_path = os.path.join(tmpdir, 'mod.yml')
+    g.save_config(mod_path)
+    return mod_path
 
 
 @time_profiler

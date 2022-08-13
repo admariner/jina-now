@@ -44,7 +44,7 @@ def show_improvement(
         doc_to_classes[d.tags[class_label]] += 1
 
     # sort the filtered doc by their count in decreasing order
-    tuples = [(category, count) for category, count in doc_to_classes.items()]
+    tuples = list(doc_to_classes.items())
     tuples.sort(key=lambda x: x[1], reverse=True)
     # pick top_x classes from the docs
     top_x_classes = [x[0] for idx, x in enumerate(tuples) if idx < top_x]
@@ -61,7 +61,7 @@ def show_improvement(
         if cat not in label_dict:
             label_dict[cat] = label_id
             label_id += 1
-        if not doc_to_classes[cat] > 2000:
+        if doc_to_classes[cat] <= 2000:
             subset.append(copy.deepcopy(d))
             labels.append(label_dict[cat])
     # filtered_doc = DocumentArray(subset)
@@ -85,7 +85,7 @@ def show_improvement(
 
     # 2. Get search results/metric and plot together
     # If all `finetuner_label` are unique then do not highlight with any color
-    unique_labels = set([doc.tags[class_label] for doc in index])
+    unique_labels = {doc.tags[class_label] for doc in index}
     unique = len(unique_labels) == len(index)
     new_query = finetuned_encoder.encode(deepcopy(query))
     new_index = finetuned_encoder.encode(deepcopy(index))

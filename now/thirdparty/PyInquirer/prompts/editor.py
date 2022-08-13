@@ -30,16 +30,19 @@ class Editor:
     def get_editor(self):
         if self.editor is not None and self.editor.lower() != "default":
             return self.editor
-        for key in 'VISUAL', 'EDITOR':
-            rv = os.environ.get(key)
-            if rv:
+        for key in ('VISUAL', 'EDITOR'):
+            if rv := os.environ.get(key):
                 return rv
         if WIN:
             return 'notepad'
-        for editor in 'vim', 'nano':
-            if os.system('which %s >/dev/null 2>&1' % editor) == 0:
-                return editor
-        return 'vi'
+        return next(
+            (
+                editor
+                for editor in ('vim', 'nano')
+                if os.system(f'which {editor} >/dev/null 2>&1') == 0
+            ),
+            'vi',
+        )
 
     def edit_file(self, filename):
         import subprocess
@@ -54,9 +57,9 @@ class Editor:
                                  env=environ, shell=True)
             exit_code = c.wait()
             if exit_code != 0:
-                raise Exception('%s: Editing failed!' % editor)
+                raise Exception(f'{editor}: Editing failed!')
         except OSError as e:
-            raise Exception('%s: Editing failed: %s' % (editor, e))
+            raise Exception(f'{editor}: Editing failed: {e}')
 
     def edit(self, text):
         import tempfile
@@ -138,30 +141,35 @@ def question(message, **kwargs):
         if inspect.isclass(validate_prompt) and issubclass(validate_prompt, Validator):
             kwargs['validator'] = validate_prompt()
         elif callable(validate_prompt):
+
+
+
             class _InputValidator(Validator):
                 def validate(self, document):
                     # print(document)
                     verdict = validate_prompt(document.text)
-                    if not verdict == True:
+                    if verdict != True:
                         if verdict == False:
                             verdict = 'invalid input'
                         raise ValidationError(
                             message=verdict,
                             cursor_position=len(document.text))
+
+
             kwargs['validator'] = _InputValidator()
 
     for k, v in eargs.items():
-        if v == "" or v == " ":
+        if v in ["", " "]:
             raise EditorArgumentsError(
                 "Args '{}' value should not be empty".format(k)
             )
-    
+
     editor = eargs.get("editor", None)
     ext = eargs.get("ext", ".txt")
     env = eargs.get("env", None)
     text = default
     filename = eargs.get("filename", None)
-    multiline = True if not editor else False
+    multiline = not editor
     save = eargs.get("save", None)
 
     if editor:
@@ -173,20 +181,13 @@ def question(message, **kwargs):
             filename=filename,
             require_save=save
         )
-        if filename:
-            default = filename
-        else:
-            default = _text
-
+        default = filename or _text
     # TODO style defaults on detail level
     kwargs['style'] = kwargs.pop('style', default_style)
     qmark = kwargs.pop('qmark', '?')
-    
+
     def _get_prompt_tokens():
-        return [
-            ('class:questionmark', qmark),
-            ('class:question', ' %s  ' % message)
-        ]
+        return [('class:questionmark', qmark), ('class:question', f' {message}  ')]
 
     return PromptSession(
         message=_get_prompt_tokens,

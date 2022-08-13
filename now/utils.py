@@ -185,24 +185,22 @@ def visual_result(
 
             match_img = np.ones([img_h, img_w, 3], dtype='uint8')
             match_img[5:-5, 5:-5] = _d.tensor  # center the match results image
-            if not unique:
-                # apply green if it is same class else red
-                if q.tags[label] == _d.tags[label]:
-                    match_img[0:5, ...] = (0, 255, 0)
-                    match_img[-5:-1, ...] = (0, 255, 0)
-                    match_img[:, 0:5, ...] = (0, 255, 0)
-                    match_img[:, -5:-1, ...] = (0, 255, 0)
-                else:
-                    match_img[0:5, ...] = (255, 0, 0)
-                    match_img[-5:-1, ...] = (255, 0, 0)
-                    match_img[:, 0:5, ...] = (255, 0, 0)
-                    match_img[:, -5:-1, ...] = (255, 0, 0)
-            else:
+            if unique:
                 match_img[0:5, ...] = (0, 0, 0)
                 match_img[-5:-1, ...] = (0, 0, 0)
                 match_img[:, 0:5, ...] = (0, 0, 0)
                 match_img[:, -5:-1, ...] = (0, 0, 0)
 
+            elif q.tags[label] == _d.tags[label]:
+                match_img[0:5, ...] = (0, 255, 0)
+                match_img[-5:-1, ...] = (0, 255, 0)
+                match_img[:, 0:5, ...] = (0, 255, 0)
+                match_img[:, -5:-1, ...] = (0, 255, 0)
+            else:
+                match_img[0:5, ...] = (255, 0, 0)
+                match_img[-5:-1, ...] = (255, 0, 0)
+                match_img[:, 0:5, ...] = (255, 0, 0)
+                match_img[:, -5:-1, ...] = (255, 0, 0)
             # paste it on the main canvas
             col_id = j + 1
             sprite_img[
@@ -212,8 +210,8 @@ def visual_result(
 
     from PIL import Image
 
-    img = Image.fromarray(sprite_img)
     if output:
+        img = Image.fromarray(sprite_img)
         with open(output, 'wb') as fp:
             img.save(fp)
 
@@ -337,9 +335,7 @@ class BetterEnum:
 def to_camel_case(text):
     s = text.replace("-", " ").replace("_", " ")
     s = s.split()
-    if len(text) == 0:
-        return text
-    return ''.join(i.capitalize() for i in s)
+    return text if len(text) == 0 else ''.join(i.capitalize() for i in s)
 
 
 sigmap = {signal.SIGINT: my_handler, signal.SIGTERM: my_handler}
@@ -352,9 +348,7 @@ def write_env_file(env_file, config):
 
 
 def _get_info_hubble(user_input):
-    login = False
-    if not os.path.exists(user('~/.jina/config.json')):
-        login = True
+    login = not os.path.exists(user('~/.jina/config.json'))
     if not login:
         with open(user('~/.jina/config.json')) as fp:
             config_val = json.load(fp)

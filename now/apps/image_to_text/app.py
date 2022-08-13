@@ -95,16 +95,16 @@ class ImageToText(JinaNOWApp):
         self, da: DocumentArray, user_input: UserInput, is_indexing=False
     ) -> DocumentArray:
         if is_indexing:
-            split_by_sentences = False
-            if (
-                user_input
-                and user_input.is_custom_dataset
-                and user_input.custom_dataset_type == DatasetTypes.PATH
-                and user_input.dataset_path
-                and os.path.isdir(user_input.dataset_path)
-            ):
-                # for text loaded from folder can't assume it is split by sentences
-                split_by_sentences = True
+            split_by_sentences = bool(
+                (
+                    user_input
+                    and user_input.is_custom_dataset
+                    and user_input.custom_dataset_type == DatasetTypes.PATH
+                    and user_input.dataset_path
+                    and os.path.isdir(user_input.dataset_path)
+                )
+            )
+
             return preprocess_text(da=da, split_by_sentences=split_by_sentences)
         else:
             return preprocess_images(da=da)

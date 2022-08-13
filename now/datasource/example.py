@@ -19,7 +19,8 @@ class DocarrayURLDatasource(Datasource):
         #  because all our app are using that atm. and abstract the interface furhter once we work on
         #  the database table column mapping stuff?
 
-        url = f'{BASE_STORAGE_URL}/{self.modality}/{self.ds_id}{("." + quality) if quality is not None else ""}.bin'
+        url = f'{BASE_STORAGE_URL}/{self.modality}/{self.ds_id}{f".{quality}" if quality is not None else ""}.bin'
+
         # TODO  return document array from url
         raise NotImplementedError()
 

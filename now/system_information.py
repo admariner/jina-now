@@ -17,8 +17,5 @@ def get_system_state(kubectl_path='kubectl', **kwargs):
     contexts, _ = cmd(f'{kubectl_path} config get-contexts --output=name')
     contexts = contexts.decode('utf-8').strip().split('\n')
     active_context, err = cmd(f'{kubectl_path} config current-context')
-    if err:
-        active_context = None
-    else:
-        active_context = active_context.decode('utf-8').strip()
+    active_context = None if err else active_context.decode('utf-8').strip()
     return contexts, active_context

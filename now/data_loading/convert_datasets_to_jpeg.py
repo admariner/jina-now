@@ -25,13 +25,13 @@ def convert_to_jpeg(dataset: str, num_workers: int = 8):
     docs = DocumentArray.load_binary(path, compress='gzip')
     print(f'  Dataset size: {len(docs)}')
 
-    print(f' convert images to jpeg for smaller datasets')
+    print(' convert images to jpeg for smaller datasets')
     # build docs
     with mp.Pool(processes=num_workers) as pool:
         docs = list(tqdm(pool.imap(to_thumbnail_jpg, docs)))
     docs = DocumentArray(docs)
 
-    print(f'  Saving converted docs ...')
+    print('  Saving converted docs ...')
     out = f'{dataset}.jpeg.bin'
     docs.save_binary(out)
     print(f'  Saved converted docs to {out} ...')

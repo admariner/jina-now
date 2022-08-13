@@ -37,8 +37,8 @@ def _build_doc(datapoint: _DataPoint) -> Document:
     else:
         doc.text = datapoint.text
     doc.tags = {'finetuner_label': datapoint.label, 'split': datapoint.split}
-    doc.tags.update(datapoint.tags)
-    doc.tags.update({'content_type': datapoint.content_type})
+    doc.tags |= datapoint.tags
+    doc.tags['content_type'] = datapoint.content_type
     return doc
 
 
@@ -95,7 +95,7 @@ def _build_deepfashion(root: str, num_workers: int = 8) -> DocumentArray:
                 )
 
         # add text doc
-        if len(labels) > 0:
+        if labels:
             for label in set(labels):
                 _, gender, category, _, color = label.split('/')
                 text_elements = [category, gender, color]
@@ -174,18 +174,18 @@ def _build_nih_chest_xrays(root: str, num_workers: int = 8) -> DocumentArray:
 
     # add text docs
     labelnames = {label for _, (label, __) in labels.items()}
-    for label in labelnames:
-        data.append(
-            _DataPoint(
-                id=label,
-                text=label.lower()
-                .replace('|', ' ')
-                .replace('_', ' ')
-                .replace('-', ' '),
-                content_type='text',
-                label=label,
-            )
+    data.extend(
+        _DataPoint(
+            id=label,
+            text=label.lower()
+            .replace('|', ' ')
+            .replace('_', ' ')
+            .replace('-', ' '),
+            content_type='text',
+            label=label,
         )
+        for label in labelnames
+    )
 
     # build docs
     with mp.Pool(processes=num_workers) as pool:
@@ -263,10 +263,12 @@ def _build_stanford_cars(root: str, num_workers: int = 8) -> DocumentArray:
 
     # add text docs
     labels = set(labels)
-    for label in labels:
-        data.append(
-            _DataPoint(id=label, text=label.lower(), content_type='text', label=label)
+    data.extend(
+        _DataPoint(
+            id=label, text=label.lower(), content_type='text', label=label
         )
+        for label in labels
+    )
 
     # build docs
     with mp.Pool(processes=num_workers) as pool:
@@ -343,15 +345,15 @@ def _build_bird_species(root: str, num_workers: int = 8) -> DocumentArray:
 
     # add text docs
     labels = {label for _, label in id2class.items()}
-    for label in labels:
-        data.append(
-            _DataPoint(
-                id=label,
-                text=label[4:].lower().replace('_', ' '),
-                content_type='text',
-                label=label,
-            )
+    data.extend(
+        _DataPoint(
+            id=label,
+            text=label[4:].lower().replace('_', ' '),
+            content_type='text',
+            label=label,
         )
+        for label in labels
+    )
 
     # build docs
     with mp.Pool(processes=num_workers) as pool:
@@ -438,13 +440,17 @@ def _build_nft(root: str, num_workers: int = 8) -> DocumentArray:
 
     data = []
     for file, text in file_to_text.items():
-        data.append(_DataPoint(id=file, image_path=f'{contentdir}/{file}', label=file))
-        data.append(
-            _DataPoint(
-                id=file + '_text',
-                text=file_to_text[file],
-                label=file,
-                content_type='text',
+        data.extend(
+            (
+                _DataPoint(
+                    id=file, image_path=f'{contentdir}/{file}', label=file
+                ),
+                _DataPoint(
+                    id=file + '_text',
+                    text=file_to_text[file],
+                    label=file,
+                    content_type='text',
+                ),
             )
         )
 
@@ -470,7 +476,7 @@ def _build_tll(root: str, num_workers: int = 8) -> DocumentArray:
         d.tags['content_type'] = 'image'
         return d
 
-    da = DocumentArray.from_files(root + '/**')
+    da = DocumentArray.from_files(f'{root}/**')
     da.apply(lambda d: transform(d))
     return da
 
@@ -504,7 +510,7 @@ def _build_lyrics(
 
     lyrics = lyrics[lyrics['Genres'].str.contains(genre)]
 
-    if 0 < max_size:
+    if max_size > 0:
         lyrics = lyrics.sample(frac=1)
 
     # create sentences from lyrics

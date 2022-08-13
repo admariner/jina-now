@@ -26,25 +26,27 @@ def list_all_wolf(status=None):
 def cmd(command, std_output=False, wait=True):
     if isinstance(command, str):
         command = command.split()
-    if not std_output:
-        process = subprocess.Popen(
+    process = (
+        subprocess.Popen(command)
+        if std_output
+        else subprocess.Popen(
             command, stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
-    else:
-        process = subprocess.Popen(command)
+    )
+
     if wait:
         output, error = process.communicate()
         return output, error
 
 
 def which(executable: str) -> bool:
-    return bool(cmd('which ' + executable)[0])
+    return bool(cmd(f'which {executable}')[0])
 
 
 def apply_replace(f_in, replace_dict, kubectl_path):
     with open(f_in, "r") as fin:
         with tempfile.NamedTemporaryFile(mode='w') as fout:
-            for line in fin.readlines():
+            for line in fin:
                 for key, val in replace_dict.items():
                     line = line.replace('{' + key + '}', str(val))
                 fout.write(line)
