@@ -36,7 +36,7 @@ def test_music_index_fails_with_no_flow_running(
 ):
     with pytest.raises(ConnectionError):
         client.post(
-            f'/api/v1/music-to-music/index',
+            '/api/v1/music-to-music/index',
             json={'songs': [base64_audio_string], 'uris': ['']},
         )
 
@@ -46,28 +46,21 @@ def test_music_search_fails_with_no_flow_running(
 ):
     with pytest.raises(ConnectionError):
         client.post(
-            f'/api/v1/music-to-music/search',
-            json={'song': base64_audio_string},
+            '/api/v1/music-to-music/search', json={'song': base64_audio_string}
         )
 
 
 def test_music_search_fails_with_incorrect_query(
     client: requests.Session, base64_audio_string: str
 ):
-    response = client.post(
-        f'/api/v1/music-to-music/search',
-        json={'song': 'hh'},
-    )
+    response = client.post('/api/v1/music-to-music/search', json={'song': 'hh'})
     assert response.status_code == 500
     assert 'Not a correct encoded query' in response.text
 
 
 def test_music_search_fails_with_emtpy_query(client: requests.Session):
     with pytest.raises(ValueError):
-        client.post(
-            f'/api/v1/music-to-music/search',
-            json={},
-        )
+        client.post('/api/v1/music-to-music/search', json={})
 
 
 def test_music_index(

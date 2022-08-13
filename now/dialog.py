@@ -54,10 +54,12 @@ def configure_user_input(**kwargs) -> [JinaNOWApp, UserInput]:
     _configure_app_options(app_instance, user_input, **kwargs)
     _configure_dataset(app_instance, user_input, **kwargs)
     _configure_cluster(user_input, **kwargs)
-    if user_input.deployment_type == 'remote':
-        if _configure_security(user_input, **kwargs):
-            if _configure_additional_user(user_input, **kwargs):
-                _configure_email_ids(user_input, **kwargs)
+    if (
+        user_input.deployment_type == 'remote'
+        and _configure_security(user_input, **kwargs)
+        and _configure_additional_user(user_input, **kwargs)
+    ):
+        _configure_email_ids(user_input, **kwargs)
     return app_instance, user_input
 
 
@@ -341,14 +343,12 @@ def maybe_prompt_user(questions, attribute, **kwargs):
     """
     if kwargs and kwargs.get(attribute) is not None:
         return kwargs[attribute]
-    else:
-        answer = prompt(questions)
-        if attribute in answer:
-            return answer[attribute]
-        else:
-            print("\n" * 10)
-            cowsay.cow('see you soon 👋')
-            exit(0)
+    answer = prompt(questions)
+    if attribute in answer:
+        return answer[attribute]
+    print("\n" * 10)
+    cowsay.cow('see you soon 👋')
+    exit(0)
 
 
 def _prompt_value(
@@ -367,7 +367,7 @@ def _prompt_value(
 
 
 def _get_context_names(contexts, active_context=None):
-    names = [c for c in contexts] if contexts is not None else []
+    names = list(contexts) if contexts is not None else []
     if active_context is not None:
         names.remove(active_context)
         names = [active_context] + names

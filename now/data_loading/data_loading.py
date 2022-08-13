@@ -179,7 +179,7 @@ def _download_from_s3_bucket(app: JinaNOWApp, user_input: UserInput) -> Document
 
 def deep_copy_da(da: DocumentArray) -> DocumentArray:
     new_da = DocumentArray()
-    for i, d in enumerate(da):
+    for d in da:
         new_doc = deepcopy(d)
         new_doc.id = str(uuid.uuid4())
         new_da.append(new_doc)

@@ -35,8 +35,7 @@ def create_local_cluster(kind_path, **kwargs):
                 ],
             },
         ]
-        recreate = maybe_prompt_user(questions, 'proceed', **kwargs)
-        if recreate:
+        if recreate := maybe_prompt_user(questions, 'proceed', **kwargs):
             with yaspin_extended(
                 sigmap=sigmap, text="Remove local cluster", color="green"
             ) as spinner:
@@ -71,8 +70,7 @@ def is_local_cluster(kubectl_path):
         print(f'Command {command} gives the following error: {error.decode("utf-8")}')
         exit(1)
     addresses = out['items'][0]['status']['addresses']
-    is_local = len([a for a in addresses if a['type'] == 'ExternalIP']) == 0
-    return is_local
+    return not [a for a in addresses if a['type'] == 'ExternalIP']
 
 
 @time_profiler
@@ -109,8 +107,7 @@ def ask_existing(kubectl_path):
                 ],
             },
         ]
-        remove = maybe_prompt_user(questions, 'proceed')
-        if remove:
+        if remove := maybe_prompt_user(questions, 'proceed'):
             with yaspin_extended(
                 sigmap=sigmap, text="Remove old deployment", color="green"
             ) as spinner:

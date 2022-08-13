@@ -19,15 +19,20 @@ def question(message, **kwargs):
         if inspect.isclass(validate_prompt) and issubclass(validate_prompt, Validator):
             kwargs['validator'] = validate_prompt()
         elif callable(validate_prompt):
+
+
+
             class _InputValidator(Validator):
                 def validate(self, document):
                     verdict = validate_prompt(document.text)
-                    if not verdict == True:
+                    if verdict != True:
                         if verdict == False:
                             verdict = 'invalid input'
                         raise ValidationError(
                             message=verdict,
                             cursor_position=len(document.text))
+
+
             kwargs['validator'] = _InputValidator()
 
     # TODO style defaults on detail level
@@ -36,10 +41,7 @@ def question(message, **kwargs):
 
 
     def _get_prompt_tokens():
-        return [
-            ('class:questionmark', qmark),
-            ('class:question', ' %s  ' % message)
-        ]
+        return [('class:questionmark', qmark), ('class:question', f' {message}  ')]
 
     return prompt(
         message=_get_prompt_tokens,

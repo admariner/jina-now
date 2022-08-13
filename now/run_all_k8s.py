@@ -41,7 +41,7 @@ def stop_now(contexts, active_context, **kwargs):
         ]
         cluster = maybe_prompt_user(questions, 'cluster', **kwargs)
     if cluster == 'kind-jina-now':
-        delete_cluster = maybe_prompt_user(
+        if delete_cluster := maybe_prompt_user(
             [
                 {
                     'type': 'list',
@@ -55,8 +55,7 @@ def stop_now(contexts, active_context, **kwargs):
             ],
             attribute='delete-cluster',
             **kwargs,
-        )
-        if delete_cluster:
+        ):
             with yaspin_extended(
                 sigmap=sigmap, text=f"Remove local cluster {cluster}", color="green"
             ) as spinner:
@@ -77,7 +76,7 @@ def stop_now(contexts, active_context, **kwargs):
         flow_id = flow_details['flow_id']
         _result = status_wolf(flow_id)
         if _result is None:
-            print(f'❎ Flow not found in JCloud. Likely, it has been deleted already')
+            print('❎ Flow not found in JCloud. Likely, it has been deleted already')
         if _result is not None and _result['status'] == 'ALIVE':
             terminate_wolf(flow_id)
         os.remove(user(JC_SECRET))
@@ -136,15 +135,27 @@ def start_now(os_type, arch, contexts, active_context, **kwargs):
         bff_playground_host
         + ('' if str(playground_port) == '80' else f':{playground_port}')
         + (
-            f'/?host='
-            + (gateway_host_internal if gateway_host != 'localhost' else 'gateway')
-            + f'&input_modality={app_instance.input_modality}'
-            + f'&output_modality={app_instance.output_modality}'
-            + f'&data={user_input.data}'
+            (
+                (
+                    (
+                        (
+                            '/?host='
+                            + (
+                                gateway_host_internal
+                                if gateway_host != 'localhost'
+                                else 'gateway'
+                            )
+                        )
+                        + f'&input_modality={app_instance.input_modality}'
+                    )
+                    + f'&output_modality={app_instance.output_modality}'
+                )
+                + f'&data={user_input.data}'
+            )
             + (f'&secured={user_input.secured}' if user_input.secured else '')
         )
-        + (f'&port={gateway_port_internal}' if gateway_port_internal else '')
-    )
+    ) + (f'&port={gateway_port_internal}' if gateway_port_internal else '')
+
     print()
     print(f'BFF docs are accessible at:\n{bff_url}')
     print(f'Playground is accessible at:\n{playground_url}')

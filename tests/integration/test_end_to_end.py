@@ -159,7 +159,7 @@ def test_backend_demo_data(
         request_body['host'] = 'gateway'
         request_body['port'] = 8080
     elif deployment_type == 'remote':
-        print(f"Getting gateway from flow_details")
+        print("Getting gateway from flow_details")
         with open(user(JC_SECRET), 'r') as fp:
             flow_details = json.load(fp)
         request_body['host'] = flow_details['gateway']
@@ -199,9 +199,10 @@ def test_backend_custom_data(
         'cluster': NEW_CLUSTER['value'],
         'deployment_type': deployment_type,
         'proceed': True,
+        'secured': False,
     }
 
-    kwargs['secured'] = False
+
     kind_path = _get_kind_path()
     create_local_cluster(kind_path, **kwargs)
     kubectl_path = _get_kubectl_path()
@@ -221,17 +222,14 @@ def test_backend_custom_data(
     assert response['host'].endswith('.wolf.jina.ai')
     assert response['port'] == 8080 or response['port'] is None
 
-    request_body = {'text': 'test', 'limit': 9}
-
-    print(f"Getting gateway from flow_details")
+    print("Getting gateway from flow_details")
     with open(user(JC_SECRET), 'r') as fp:
         flow_details = json.load(fp)
-    request_body['host'] = flow_details['gateway']
-
+    request_body = {'text': 'test', 'limit': 9, 'host': flow_details['gateway']}
     response = requests.post(
-        f'http://localhost:30090/api/v1/text-to-image/search',
-        json=request_body,
+        'http://localhost:30090/api/v1/text-to-image/search', json=request_body
     )
+
 
     assert (
         response.status_code == 200
@@ -239,11 +237,10 @@ def test_backend_custom_data(
     response_json = response.json()
     assert len(response_json) == 9
     assert all(
-        [resp['uri'].startswith('s3://') for resp in response_json]
+        resp['uri'].startswith('s3://') for resp in response_json
     ), f"Received non s3 uris: {[resp['uri'] for resp in response_json]}"
+
     assert all(
-        [
-            resp['blob'] is None or resp['blob'] == '' or resp['blob'] == b''
-            for resp in response_json
-        ]
+        resp['blob'] is None or resp['blob'] == '' or resp['blob'] == b''
+        for resp in response_json
     ), f"Received blobs: {[resp['blob'] for resp in response_json]}"

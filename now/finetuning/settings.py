@@ -76,7 +76,7 @@ def _is_finetuning(
     if user_input.data in finetuneable_datasets:
         return True
     elif user_input.is_custom_dataset and all(
-        ['finetuner_label' in d.tags for d in dataset]
+        'finetuner_label' in d.tags for d in dataset
     ):
         return True
     else:
@@ -85,8 +85,8 @@ def _is_finetuning(
 
 def _is_bi_modal(user_input: UserInput, dataset: DocumentArray) -> bool:
     if user_input.is_custom_dataset:
-        has_blob = any([d.blob != b'' for d in dataset])
-        has_text = any([d.text != '' for d in dataset])
+        has_blob = any(d.blob != b'' for d in dataset)
+        has_text = any(d.text != '' for d in dataset)
         return has_text and has_blob
     else:
         return True  # right now all demo cases are bi-modal

@@ -43,12 +43,11 @@ st.set_page_config(page_title="NOW", page_icon='https://jina.ai/favicon.ico')
 
 def convert_file_to_document(query):
     data = query.read()
-    doc = Document(blob=data)
-    return doc
+    return Document(blob=data)
 
 
 def load_music_examples(DATA) -> DocumentArray:
-    ds_url = root_data_dir + 'music/' + DATA + f'-song5-{docarray_version}.bin'
+    ds_url = f'{root_data_dir}music/{DATA}' + f'-song5-{docarray_version}.bin'
     return load_data(ds_url)[0, 1, 4]
 
 
@@ -65,9 +64,7 @@ def _get_all_cookies() -> dict:
     session_info = Server.get_current()._get_session_info(session_id)
     header = session_info.ws.request.headers
     cookie_strings = [header_str for k, header_str in header.get_all() if k == 'Cookie']
-    parsed_cookies = {k: v for c in cookie_strings for k, v in parse_cookie(c).items()}
-
-    return parsed_cookies
+    return {k: v for c in cookie_strings for k, v in parse_cookie(c).items()}
 
 
 def get_cookie_value(cookie_name):
@@ -153,29 +150,26 @@ def deploy_streamlit():
 
 
 def render_auth_components(params):
-    if params.secured.lower() == 'true':
-        jwt_val = get_cookie_value(cookie_name=JWT_COOKIE)
-        if jwt_val and not st.session_state.login:
-            jwt_val = json.loads(unquote(jwt_val))
-            if not st.session_state.jwt_val:
-                st.session_state.jwt_val = jwt_val
-            if not st.session_state.avatar_val:
-                st.session_state.avatar_val = jwt_val['user']['avatarUrl']
-            if not st.session_state.token_val:
-                st.session_state.token_val = jwt_val['token']
-        redirect_to = None
-        if not st.session_state.jwt_val:
-            redirect_to = _do_login(params)
-        _, logout, avatar = st.columns([0.7, 0.12, 0.12])
-        if not st.session_state.login:
-            with avatar:
-                if st.session_state.avatar_val:
-                    st.image(st.session_state.avatar_val, width=30)
-            with logout:
-                st.button('Logout', on_click=_do_logout)
-        return redirect_to
-    else:
+    if params.secured.lower() != 'true':
         return None
+    jwt_val = get_cookie_value(cookie_name=JWT_COOKIE)
+    if jwt_val and not st.session_state.login:
+        jwt_val = json.loads(unquote(jwt_val))
+        if not st.session_state.jwt_val:
+            st.session_state.jwt_val = jwt_val
+        if not st.session_state.avatar_val:
+            st.session_state.avatar_val = jwt_val['user']['avatarUrl']
+        if not st.session_state.token_val:
+            st.session_state.token_val = jwt_val['token']
+    redirect_to = None if st.session_state.jwt_val else _do_login(params)
+    _, logout, avatar = st.columns([0.7, 0.12, 0.12])
+    if not st.session_state.login:
+        with avatar:
+            if st.session_state.avatar_val:
+                st.image(st.session_state.avatar_val, width=30)
+        with logout:
+            st.button('Logout', on_click=_do_logout)
+    return redirect_to
 
 
 def _do_login(params):
@@ -224,8 +218,7 @@ def _do_login(params):
         url=f'https://api.hubble.jina.ai/v2/rpc/user.identity.authorize'
         f'?provider=jina-login&response_mode=query&redirect_uri={redirect_uri}&scope=email%20profile%20openid'
     ).json()
-    redirect_to = rsp['data']['redirectTo']
-    return redirect_to
+    return rsp['data']['redirectTo']
 
 
 def _do_logout():
@@ -238,7 +231,7 @@ def _do_logout():
 
 def load_example_queries(DATA, OUTPUT_MODALITY, da_img, da_txt):
     if DATA in ds_set:
-        if OUTPUT_MODALITY == 'image' or OUTPUT_MODALITY == 'video':
+        if OUTPUT_MODALITY in ['image', 'video']:
             output_modality_dir = 'jpeg'
             data_dir = root_data_dir + output_modality_dir + '/'
             da_img, da_txt = load_data(
@@ -297,8 +290,7 @@ def setup_design():
 
 def render_image(da_img):
     upload_c, preview_c = st.columns([12, 1])
-    query = upload_c.file_uploader("")
-    if query:
+    if query := upload_c.file_uploader(""):
         doc = convert_file_to_document(query)
         st.image(doc.blob, width=160)
         st.session_state.matches = search_by_image(
@@ -310,7 +302,7 @@ def render_image(da_img):
         txt_cs = st.columns(5)
         for doc, c, txt in zip(da_img, img_cs, txt_cs):
             with c:
-                st.image(doc.blob if doc.blob else doc.tensor, width=100)
+                st.image(doc.blob or doc.tensor, width=100)
             with txt:
                 if st.button('Search', key=doc.id):
                     st.session_state.matches = search_by_image(
@@ -371,21 +363,26 @@ def render_matches(OUTPUT_MODALITY):
                 body = f"<!DOCTYPE html><html><body><blockquote>{display_text}</blockquote>"
                 if match.tags.get('additional_info'):
                     additional_info = match.tags.get('additional_info')
-                    if type(additional_info) == str:
+                    if (
+                        type(additional_info) != str
+                        and type(additional_info) == list
+                        and len(additional_info) == 1
+                        or type(additional_info) == str
+                    ):
+                        # assumes just one line containing information on text name and creator, etc.
                         additional_info_text = additional_info
-                    elif type(additional_info) == list:
-                        if len(additional_info) == 1:
-                            # assumes just one line containing information on text name and creator, etc.
-                            additional_info_text = additional_info
-                        elif len(additional_info) == 2:
-                            # assumes first element is text name and second element is creator name
-                            additional_info_text = (
-                                f"<em>{additional_info[0]}</em> "
-                                f"<small>by {additional_info[1]}</small>"
-                            )
+                    elif (
+                        type(additional_info) == list
+                        and len(additional_info) == 2
+                    ):
+                        # assumes first element is text name and second element is creator name
+                        additional_info_text = (
+                            f"<em>{additional_info[0]}</em> "
+                            f"<small>by {additional_info[1]}</small>"
+                        )
 
-                        else:
-                            additional_info_text = " ".join(additional_info)
+                    elif type(additional_info) == list:
+                        additional_info_text = " ".join(additional_info)
                     body += f"<figcaption>{additional_info_text}</figcaption>"
                 body += "</body></html>"
                 c.markdown(

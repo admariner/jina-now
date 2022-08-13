@@ -95,7 +95,7 @@ def embed_dataset(
     clip_model.eval()
     clip_model.to(device)
 
-    print(f'  Splitting text and image docs ...')
+    print('  Splitting text and image docs ...')
     text_docs = DocumentArray(
         [doc for doc in docs if doc.tags['content_type'] == 'text']
     )
@@ -105,7 +105,7 @@ def embed_dataset(
     print(f'  Num text docs: {len(text_docs)}')
     print(f'  Num image docs: {len(image_docs)}')
 
-    print(f'  Embedding text docs ...')
+    print('  Embedding text docs ...')
     embed_docs(
         clip_model.encode_text,
         text_docs,
@@ -113,9 +113,9 @@ def embed_dataset(
         device=device,
         batch_size=batch_size,
     )
-    print(f'  Done!')
+    print('  Done!')
 
-    print(f'  Embedding image docs ...')
+    print('  Embedding image docs ...')
     embed_docs(
         clip_model.encode_image,
         image_docs,
@@ -123,19 +123,19 @@ def embed_dataset(
         device=device,
         batch_size=batch_size,
     )
-    print(f'  Done!')
+    print('  Done!')
 
-    print(f' convert images to jpeg for smaller datasets')
+    print(' convert images to jpeg for smaller datasets')
     to_jpg(image_docs)
 
-    print(f'  Saving embedded docs ...')
+    print('  Saving embedded docs ...')
     docs = text_docs + image_docs
     docs = docs.shuffle(42)
     out = f'{dataset}.{model.replace("/", "")}.bin'
     docs.save_binary(out)
     print(f'  Saved embedded docs to {out} ...')
 
-    print(f'  Uploading dataset ...')
+    print('  Uploading dataset ...')
     upload_to_gcloud_bucket(project, bucket, location, out)
     print(f'  Uploaded dataset to gs://{bucket}/{location}/{out}')
 

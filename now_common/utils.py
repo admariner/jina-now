@@ -130,10 +130,9 @@ def preprocess_text(da: DocumentArray, split_by_sentences=False) -> DocumentArra
 
     def convert_fn(d: Document):
         try:
-            if not d.text:
-                if d.uri:
-                    d.load_uri_to_text()
-                    d.tags['additional_info'] = d.uri
+            if not d.text and d.uri:
+                d.load_uri_to_text()
+                d.tags['additional_info'] = d.uri
             return d
         except:
             return d
@@ -156,12 +155,11 @@ def preprocess_text(da: DocumentArray, split_by_sentences=False) -> DocumentArra
             return ret
 
         for batch in da.map_batch(_get_sentence_docs, backend='process', batch_size=64):
-            for d in batch:
-                yield d
+            yield from batch
 
     da.apply(convert_fn)
 
     if split_by_sentences:
-        da = DocumentArray(d for d in gen_split_by_sentences())
+        da = DocumentArray(iter(gen_split_by_sentences()))
 
     return DocumentArray(d for d in da if d.text and d.text != '')

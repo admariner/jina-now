@@ -18,7 +18,7 @@ class PromptParameterException(ValueError):
     def __init__(self, message, errors=None):
 
         # Call the base class constructor with the parameters it needs
-        super().__init__('You must provide a `%s` value' % message, errors)
+        super().__init__(f'You must provide a `{message}` value', errors)
 
 # The code below here is here because of backwards-compatibility. Before,
 # people were using style_from_dict and importing it from here. It's better to

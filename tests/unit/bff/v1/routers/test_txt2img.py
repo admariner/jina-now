@@ -18,18 +18,12 @@ def test_image_index_fails_with_no_flow_running(
 
 def test_image_search_fails_with_no_flow_running(client: requests.Session):
     with pytest.raises(ConnectionError):
-        client.post(
-            f'/api/v1/text-to-image/search',
-            json={'text': 'Hello'},
-        )
+        client.post('/api/v1/text-to-image/search', json={'text': 'Hello'})
 
 
 def test_image_search_fails_with_empty_query(client: requests.Session):
     with pytest.raises(ValueError):
-        client.post(
-            f'/api/v1/text-to-image/search',
-            json={},
-        )
+        client.post('/api/v1/text-to-image/search', json={})
 
 
 def test_image_index(

@@ -12,7 +12,11 @@ from now.deployment.deployment import cmd
 
 warnings.filterwarnings("ignore")
 
-if len(sys.argv) != 1 and not ('-h' in sys.argv[1:] or '--help' in sys.argv[1:]):
+if (
+    len(sys.argv) != 1
+    and '-h' not in sys.argv[1:]
+    and '--help' not in sys.argv[1:]
+):
     print(f'Initialising Jina NOW v{version} ...')
 cur_dir = pathlib.Path(__file__).parents[1].resolve()
 

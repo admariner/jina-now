@@ -21,26 +21,23 @@ def test_image_search_fails_with_no_flow_running(
 ):
     with pytest.raises(ConnectionError):
         client.post(
-            f'/api/v1/image-to-image/search',
+            '/api/v1/image-to-image/search',
             json={'image': base64_image_string},
         )
 
 
 def test_image_search_fails_with_incorrect_query(client: requests.Session):
     response = client.post(
-        f'/api/v1/image-to-image/search',
-        json={'image': 'hello'},
+        '/api/v1/image-to-image/search', json={'image': 'hello'}
     )
+
     assert response.status_code == 500
     assert 'Not a correct encoded query' in response.text
 
 
 def test_image_search_fails_with_empty_query(client: requests.Session):
     with pytest.raises(ValueError):
-        client.post(
-            f'/api/v1/image-to-image/search',
-            json={},
-        )
+        client.post('/api/v1/image-to-image/search', json={})
 
 
 def test_image_index(

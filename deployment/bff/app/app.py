@@ -109,8 +109,7 @@ def build_app():
     text2video_app = get_app_instance()
     text2video_app.include_router(txt2video.router, tags=['Text-To-Video'])
 
-    # Mount them - for other modalities just add an app instance
-    app = Starlette(
+    return Starlette(
         routes=[
             Mount(cloud_temp_link_mount, cloud_temp_link_app),
             Mount(img2img_mount, img2img_app),
@@ -121,8 +120,6 @@ def build_app():
             Mount(text2video_mount, text2video_app),
         ]
     )
-
-    return app
 
 
 application = build_app()

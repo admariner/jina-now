@@ -19,10 +19,7 @@ router = APIRouter()
 )
 def temp_link(data: CloudTempLinkRequestModel):
     """Downloads files as defined in URI and returns them as blobs."""
-    docs = []
-    for id, uri in zip(data.ids, data.uris):
-        docs.append(Document(id=id, uri=uri))
-
+    docs = [Document(id=id, uri=uri) for id, uri in zip(data.ids, data.uris)]
     docs = jina_client_post(
         host=data.host,
         port=data.port,
