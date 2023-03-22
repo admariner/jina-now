@@ -122,7 +122,7 @@ class JinaNOWApp:
                     'app': 'gateway',
                 },
                 'resources': {
-                    'instance': 'C5',
+                    'instance': 'C2',
                     'capacity': 'spot',
                     'storage': {
                         'kind': 'efs',
