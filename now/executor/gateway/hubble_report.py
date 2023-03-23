@@ -38,8 +38,8 @@ def start_base_fee_thread(user_token, inf_token, storage_dir):
 
 
 def save_cred(storage_dir):
-    if storage_dir:
-        with open(f'{storage_dir}/cred.json', 'w') as f:
+    if storage_dir and os.path.exists(storage_dir):
+        with open(f'{storage_dir}/cred.json', 'w+') as f:
             json.dump({'authorized_jwt': authorized_jwt}, f)
     else:
         logger.info('No storage dir found. Not saving cred.json')
