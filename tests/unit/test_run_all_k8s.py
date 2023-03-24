@@ -23,18 +23,42 @@ def test_flow_status(mocker: MockerFixture):
     _, flow_id, _ = get_flow_status(action='delete', cluster='test')
 
 
+def _mock_post_response(mock_post):
+    mock_json_response = [
+        {
+            "id": "1",
+            "scores": {"cosine": {"value": 2}},
+            "tags": {
+                "title": "Test1",
+            },
+            "fields": {
+                "text_0": {"uri": None, "text": "Test1", "blob": None},
+                "video_0": {"uri": "https://example.com", "text": None, "blob": None},
+            },
+        },
+        {
+            "id": "2",
+            "scores": {"cosine": {"value": 2}},
+            "tags": {
+                "title": "Test2",
+            },
+            "fields": {
+                "video_0": {"uri": "https://example.com", "text": None, "blob": None},
+                "text_0": {"uri": None, "text": "Test2", "blob": None},
+            },
+        },
+    ]
+    mock_status = 200
+    mock_post.return_value.json.return_value = mock_json_response
+    mock_post.return_value.status_code = mock_status
+
+
 def test_compare_flows_with_flow_ids(mocker: MockerFixture):
-    mocker.patch(
-        'now.compare.compare_flows.compare_flows_for_queries',
-        return_value='PASS',
-    )
-    mocker.patch(
-        'now.run_all_k8s.get_docarray',
-        return_value=DocumentArray([Document(MMDocarray(description="test"))]),
-    )
+    mock_post = mocker.patch('requests.post')
+    _mock_post_response(mock_post)
     kwargs = {
         'flow_ids': '1,2',
-        'dataset': 'test',
+        'dataset': 'team-now/pop-lyrics',
         'limit': 1,
         'disable_to_datauri': True,
         'results_per_table': 20,
@@ -43,9 +67,11 @@ def test_compare_flows_with_flow_ids(mocker: MockerFixture):
 
 
 def test_compare_flows_no_flow_ids(mocker: MockerFixture):
+    mock_post = mocker.patch('requests.post')
+    _mock_post_response(mock_post)
     kwargs = {
         'path_score_calculation': 'tests/unit/test_correct_response.json',
-        'dataset': 'test',
+        'dataset': 'team-now/pop-lyrics',
         'limit': 1,
         'disable_to_datauri': True,
         'results_per_table': 20,
