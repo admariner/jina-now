@@ -3,7 +3,6 @@ import logging
 import os
 from typing import Any, Dict, List
 
-from docarray import Document
 from fastapi import APIRouter, Body
 
 from now.data_loading.create_dataclass import create_dataclass
@@ -11,7 +10,6 @@ from now.executor.gateway.bff.app.settings import user_input_in_bff
 from now.executor.gateway.bff.app.v1.models.search import (
     SearchRequestModel,
     SearchResponseModel,
-    SuggestionRequestModel,
 )
 from now.executor.gateway.bff.app.v1.routers.helper import (
     field_dict_to_mm_doc,
@@ -86,24 +84,6 @@ search_examples = {
     },
 }
 
-suggestion_examples = {
-    'working_text': {
-        'summary': 'A working example: get suggestions for a text query',
-        'description': 'A working example which can be tried out. Get autocomplete suggestions for a text query.',
-        'value': {
-            'text': 'cute ca',
-        },
-    },
-    'dummy': {
-        'summary': 'A dummy example',
-        'description': 'A dummy example,  do not run. For parameter reference only.',
-        'value': {
-            'jwt': {'token': '<your token>'},
-            'api_key': '<your api key>',
-            'text': 'cute cats',
-        },
-    },
-}
 
 router = APIRouter()
 
@@ -162,15 +142,10 @@ async def search(
         scores = {}
         for score_name, named_score in doc.scores.items():
             scores[score_name] = named_score.to_dict()
-        # since multimodal doc is not supported, we take the first chunk
-        if doc.chunks:
-            field_names_and_chunks = [
-                [field_name, get_chunk_by_field_name(doc, field_name)]
-                for field_name in doc._metadata['multi_modal_schema'].keys()
-            ]
-        else:
-            # TODO remove else path. It is only used to support the inmemory indexer since that one is operating on chunks while elastic responds with root documents
-            field_names_and_chunks = [['result_field', doc]]
+        field_names_and_chunks = [
+            [field_name, get_chunk_by_field_name(doc, field_name)]
+            for field_name in doc._metadata['multi_modal_schema'].keys()
+        ]
         results = {}
         for field_name, chunk in field_names_and_chunks:
             if chunk.blob:
@@ -225,18 +200,3 @@ def get_score_calculation(
             )
         score_calculation.append(scr_calc)
     return score_calculation
-
-
-@router.post(
-    '/suggestion',
-    summary='Get auto complete suggestion for query',
-)
-async def suggestion(data: SuggestionRequestModel = Body(examples=suggestion_examples)):
-    suggest_doc = Document(text=data.text)
-    docs = await jina_client_post(
-        endpoint='/suggestion',
-        docs=suggest_doc,
-        request_model=data,
-        target_executor=r'\Aautocomplete_executor\Z',
-    )
-    return docs.to_dict()

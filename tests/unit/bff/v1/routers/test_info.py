@@ -1,7 +1,6 @@
 import json
 from typing import Callable
 
-import pytest
 import requests
 from docarray import DocumentArray
 from starlette import status
@@ -15,7 +14,7 @@ def test_tags_response(
     base64_image_string: str,
 ):
     response = client_with_mocked_jina_client(sample_search_response_text).post(
-        '/api/v1/info/tags',
+        '/api/v1/search-app/filters',
         json={
             'query': [
                 {'name': 'blob', 'value': base64_image_string, 'modality': 'image'},
@@ -25,7 +24,8 @@ def test_tags_response(
     )
 
     assert response.status_code == status.HTTP_200_OK
-    assert len(json.loads(response.content)['tags']) == 1
+    assert len(json.loads(response.content)) == 1
+    assert json.loads(response.content)['filters'] == {'color': ['blue']}
 
 
 def test_count_response(
@@ -34,7 +34,7 @@ def test_count_response(
     base64_image_string: str,
 ):
     response = client_with_mocked_jina_client(sample_search_response_text).post(
-        '/api/v1/info/count',
+        '/api/v1/search-app/count',
         json={
             'query': [
                 {'name': 'blob', 'value': base64_image_string, 'modality': 'image'},
@@ -57,31 +57,13 @@ def get_user_input() -> UserInput:
     return user_input
 
 
-@pytest.mark.parametrize('dump_user_input', [get_user_input()], indirect=True)
-def test_field_names_to_dataclass_fields_response(
-    dump_user_input,
-    client_with_mocked_jina_client: Callable[[DocumentArray], requests.Session],
-    sample_search_response_text: DocumentArray,
-    base64_image_string: str,
-):
-    response = client_with_mocked_jina_client(sample_search_response_text).post(
-        '/api/v1/info/field_names_to_dataclass_fields',
-    )
-
-    assert response.status_code == status.HTTP_200_OK
-    assert json.loads(response.content)['field_names_to_dataclass_fields'] == {
-        'text.txt': 'text_0',
-        'image.png': 'image_0',
-    }
-
-
 def test_encoder_to_dataclass_fields_mods_response(
     client_with_mocked_jina_client: Callable[[DocumentArray], requests.Session],
     sample_search_response_text: DocumentArray,
     base64_image_string: str,
 ):
     response = client_with_mocked_jina_client(sample_search_response_text).post(
-        '/api/v1/info/encoder_to_dataclass_fields_mods',
+        '/api/v1/search-app/encoder_to_dataclass_fields_mods',
         json={
             'query': [
                 {'name': 'blob', 'value': base64_image_string, 'modality': 'image'},
