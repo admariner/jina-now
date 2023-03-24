@@ -1,13 +1,14 @@
 import pytest
-from docarray import dataclass
+from docarray import Document, DocumentArray, dataclass
+from docarray.typing import Text
 from pytest_mock import MockerFixture
 
 from now.run_all_k8s import compare_flows, get_docarray, get_flow_status, stop_now
 
 
 @dataclass
-class MMStructure:
-    is_multimodal: bool
+class MMDocarray:
+    description: Text = ''
 
 
 def test_flow_status(mocker: MockerFixture):
@@ -29,7 +30,7 @@ def test_compare_flows_with_flow_ids(mocker: MockerFixture):
     )
     mocker.patch(
         'now.run_all_k8s.get_docarray',
-        return_value=[MMStructure(is_multimodal=True)],
+        return_value=DocumentArray([Document(MMDocarray(description="test"))]),
     )
     kwargs = {
         'flow_ids': '1,2',
@@ -56,7 +57,7 @@ def test_compare_flows_no_flow_ids(mocker: MockerFixture):
     )
     mocker.patch(
         'now.run_all_k8s.get_docarray',
-        return_value=[MMStructure(is_multimodal=True)],
+        return_value=DocumentArray([Document(MMDocarray(description="test"))]),
     )
 
     compare_flows(**kwargs)

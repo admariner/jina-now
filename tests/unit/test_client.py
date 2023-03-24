@@ -45,16 +45,22 @@ async def test_send_request_no_query_doc(client):
         )
 
 
+async def async_mock_async_func(mock_async_func, endpoint, text, *args, **kwargs):
+    return mock_async_func(endpoint=endpoint, text=text, *args, **kwargs)
+
+
 @pytest.mark.asyncio
 async def test_send_requests(mocker, client):
     mock_async_func = MagicMock()
-
-    async def async_mock_async_func(endpoint, text, *args, **kwargs):
-        return mock_async_func(endpoint=endpoint, text=text, *args, **kwargs)
-
     mock_async_func.return_value = {'status_code': 200}
 
-    helper.jina_client_post = async_mock_async_func
+    mocker.patch.object(
+        helper,
+        'jina_client_post',
+        new=lambda *args, **kwargs: async_mock_async_func(
+            mock_async_func, *args, **kwargs
+        ),
+    )
 
     response = await client.send_request(
         endpoint='search',
