@@ -6,7 +6,7 @@ from typing import Any, Dict, List
 from fastapi import APIRouter, Body
 
 from now.data_loading.create_dataclass import create_dataclass
-from now.executor.gateway.bff.app.settings import user_input_in_bff
+from now.executor.gateway.bff.app.settings import GlobalUserInput
 from now.executor.gateway.bff.app.v1.models.search import (
     SearchRequestModel,
     SearchResponseModel,
@@ -190,13 +190,15 @@ def get_score_calculation(
         [['query_text', 'my_product_image', 'encoderclip', 1], ['query_text', 'my_product_text', 'bm25', 1]]
     """
     score_calculation = []
+    user_input_in_bff = GlobalUserInput.user_input_in_bff
     for scr_calc in data.score_calculation:
         scr_calc[0] = field_names_to_dataclass_fields[scr_calc[0]]
         try:
             scr_calc[1] = user_input_in_bff.field_names_to_dataclass_fields[scr_calc[1]]
         except KeyError:
             raise KeyError(
-                f'Field {scr_calc[1]} not found in dataclass. Please select possible values: {user_input_in_bff.field_names_to_dataclass_fields.keys()}'
+                f'Field {scr_calc[1]} not found in dataclass. Please select possible values: '
+                f'{user_input_in_bff.field_names_to_dataclass_fields.keys()}'
             )
         score_calculation.append(scr_calc)
     return score_calculation

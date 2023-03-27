@@ -162,12 +162,16 @@ def es_connection_params():
     return connection_str, connection_args
 
 
-@pytest.fixture(scope="function")
-def dump_user_input(request) -> None:
+@pytest.fixture(scope='function')
+def remove_user_input_file() -> None:
     # If user_input.json exists, then remove it
     if os.path.exists(os.path.join(os.path.expanduser('~'), 'user_input.json')):
         os.remove(os.path.join(os.path.expanduser('~'), 'user_input.json'))
-    # Now dump the user input
+
+
+@pytest.fixture(scope="function")
+def dump_user_input(request) -> None:
+    # Dump the user input
     with open(os.path.join(os.path.expanduser('~'), 'user_input.json'), 'w') as f:
         json.dump(request.param.to_safe_dict(), f)
     yield

@@ -9,6 +9,7 @@ from now.now_dataclasses import UserInput
 
 
 def test_tags_response(
+    remove_user_input_file,
     client_with_mocked_jina_client: Callable[[DocumentArray], requests.Session],
     sample_search_response_text: DocumentArray,
     base64_image_string: str,
@@ -29,6 +30,7 @@ def test_tags_response(
 
 
 def test_count_response(
+    remove_user_input_file,
     client_with_mocked_jina_client: Callable[[DocumentArray], requests.Session],
     sample_search_response_text: DocumentArray,
     base64_image_string: str,
@@ -58,6 +60,7 @@ def get_user_input() -> UserInput:
 
 
 def test_encoder_to_dataclass_fields_mods_response(
+    remove_user_input_file,
     client_with_mocked_jina_client: Callable[[DocumentArray], requests.Session],
     sample_search_response_text: DocumentArray,
     base64_image_string: str,

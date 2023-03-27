@@ -50,8 +50,8 @@ jobs:
           git checkout -b $branch_name
           git add .test_durations
           git status
-          git commit -m "refactor: update durations"
+          git commit -m "chore: update test durations"
           git push origin $branch_name
-          gh pr create --title "refactor: update durations" --body "refactor: update durations"
+          gh pr create --title "chore: update test durations" --body "chore: update test durations"
         env:
           GH_TOKEN: ${{ github.token }}

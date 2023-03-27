@@ -29,7 +29,8 @@ def get_user_input():
 @pytest.mark.asyncio
 async def test_docarray(
     mock_hubble_billing_report,
-    dump_user_input,
+    remove_user_input_file,  # first remove olds user input
+    dump_user_input,  # then dump the new one
     monkeypatch,
     setup_service_running,
     random_index_name,
