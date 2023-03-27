@@ -91,7 +91,7 @@ def init_payment_client(user_token):
 
 
 def report(user_token, quantity_basic, quantity_pro):
-    logger.info('Time of report: {}'.format(current_time()))
+    logger.info('Time of reporting for credits usage: {}'.format(current_time()))
     app_id = 'search'
     try:
         logger.info(f'Charging user with token {user_token or old_user_token}')

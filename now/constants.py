@@ -4,7 +4,7 @@ from docarray.typing import Image, Text, Video
 
 from now.utils.common.helpers import BetterEnum
 
-NOW_GATEWAY_VERSION = '0.0.6-fis-storage-issue-2'
+NOW_GATEWAY_VERSION = '0.0.6-bump-version-1'
 NOW_PREPROCESSOR_VERSION = '0.0.125-feat-reduce-indexer-gateway-instance-1'
 NOW_ELASTIC_INDEXER_VERSION = '0.0.149-fix-merge-info-into-search-8'
 NOW_AUTOCOMPLETE_VERSION = '0.0.12-feat-reduce-indexer-gateway-instance-1'
