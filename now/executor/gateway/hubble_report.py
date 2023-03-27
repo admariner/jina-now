@@ -93,13 +93,13 @@ def init_payment_client(user_token):
 def report(user_token, quantity_basic, quantity_pro):
     logger.info('Time of report: {}'.format(current_time()))
     app_id = 'search'
-    product_id = 'free-plan'
     try:
         logger.info(f'Charging user with token {user_token or old_user_token}')
         logger.info(f'Authorized JWT: {authorized_jwt[:10]}...{authorized_jwt[-10:]}')
         summary = get_summary()
-        logger.info(f'Credits before: {summary["credits"]}')
-        if summary['internal_product_id'] == 'free-plan':
+        product_id = summary['internal_product_id']
+        logger.info(f'Credits before: {summary["credits"]} & product_id: {product_id}')
+        if product_id == 'free-plan':
             quantity = quantity_basic
         else:
             quantity = quantity_pro
