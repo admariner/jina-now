@@ -56,7 +56,7 @@ class PlaygroundGateway(Gateway):
 
 class BFFGateway(FastAPIBaseGateway):
     @property
-    def app(self):
+    def app(self, **kwargs):
         from now.executor.gateway.bff.app.app import application
 
         # fix to use starlette instead of FastAPI app (throws warning that "/" is used for health checks

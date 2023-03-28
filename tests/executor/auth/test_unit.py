@@ -1,7 +1,7 @@
-from concurrent.futures import Executor
 from typing import Dict
 
 import pytest
+from jina import Executor
 
 from now.executor.abstract.auth import (
     SecurityLevel,

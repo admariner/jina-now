@@ -4,6 +4,7 @@ import sys
 import time
 from functools import wraps
 
+from jina.logging.logger import JinaLogger
 from yaspin.core import Yaspin
 
 
@@ -59,7 +60,7 @@ def time_profiler(fun):
         if 'NOW_CI_RUN' in os.environ:
             elapsed_time = time.time() - t0
             sec, fsec = divmod(round(100 * elapsed_time), 100)
-            print(
+            logger.debug(
                 "Time to execute {}.{}: ({}.{:02.0f})".format(
                     fun.__module__, fun.__name__, datetime.timedelta(seconds=sec), fsec
                 )
@@ -67,3 +68,7 @@ def time_profiler(fun):
         return result
 
     return profiled_fun
+
+
+os.environ['JINA_LOG_LEVEL'] = os.environ.get('JINA_LOG_LEVEL', 'INFO')
+logger = JinaLogger("app")

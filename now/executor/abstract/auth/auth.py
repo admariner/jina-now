@@ -4,9 +4,10 @@ from functools import lru_cache
 from typing import Dict, List
 
 import hubble
-from docarray import DocumentArray
+from docarray import Document, DocumentArray
 from hubble.excepts import AuthenticationRequiredError
 from jina import Executor, requests
+from jina.enums import LogVerbosity
 from jina.logging.logger import JinaLogger
 
 from now.now_dataclasses import UserInput
@@ -30,7 +31,54 @@ def secure_request(level: int, on: str = None):
                 args[0].admin_emails,
                 args[0].api_keys,
             )
-            return func(*args, **kwargs)
+
+            cls_instance = args[0]
+            if 'args' in kwargs:
+                cls_instance.logger.debug(f"args: {kwargs['args']}")
+
+            if 'docs' in kwargs and kwargs['docs']:
+                if isinstance(kwargs['docs'], DocumentArray):
+                    cls_instance.logger.info(f"processing {len(kwargs['docs'])} docs")
+                    if cls_instance.logger.logger.level <= LogVerbosity.DEBUG:
+                        kwargs['docs'].summary()
+                        kwargs['docs'][0].summary()
+                elif isinstance(kwargs['docs'], Document):
+                    cls_instance.logger.info(f"processing a single doc")
+                    if cls_instance.logger.logger.level <= LogVerbosity.DEBUG:
+                        kwargs['docs'].summary()
+
+            if 'docs_matrix' in kwargs and kwargs['docs_matrix']:
+                cls_instance.logger.info(
+                    f"processing {len(kwargs['docs_matrix'])} docs_matrix"
+                )
+                lengths = [str(len(da)) for da in kwargs['docs_matrix']]
+                cls_instance.logger.info(f"lengths: {', '.join(lengths)}")
+                if cls_instance.logger.logger.level <= LogVerbosity.DEBUG and len(
+                    kwargs['docs_matrix']
+                ):
+                    kwargs['docs_matrix'][0].summary()
+                    kwargs['docs_matrix'][0][0].summary()
+
+            if 'docs_map' in kwargs and kwargs['docs_map']:
+                cls_instance.logger.info(
+                    f"processing {len(kwargs['docs_map'])} docs_map"
+                )
+                lengths = [
+                    f"{key_encoder}: {len(da)}"
+                    for key_encoder, da in kwargs['docs_map'].items()
+                ]
+                cls_instance.logger.info(f"lengths: {', '.join(lengths)}")
+
+            res = func(*args, **kwargs)
+
+            if isinstance(res, DocumentArray):
+                cls_instance.logger.info(f"output {len(res)} docs")
+                if len(res) and cls_instance.logger.logger.level <= LogVerbosity.DEBUG:
+                    res[0].summary()
+            elif not res:
+                cls_instance.logger.info(f"no output")
+
+            return res
 
         return wrapper
 

@@ -1,5 +1,4 @@
 import inspect
-import logging
 import time
 from contextlib import contextmanager
 from datetime import timedelta
@@ -7,8 +6,9 @@ from functools import wraps
 from typing import Callable
 
 from fastapi import HTTPException
+from jina.logging.logger import JinaLogger
 
-logger = logging.getLogger(__name__)
+logger = JinaLogger('bff.app')
 
 
 @contextmanager

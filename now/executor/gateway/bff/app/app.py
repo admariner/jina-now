@@ -1,11 +1,12 @@
 # TODO bff_request_mapping_fn and bff_response_mapping_fn should be used to create all routes
 
-import logging.config
+import os
 import sys
 
 import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from jina.logging.logger import JinaLogger
 from starlette.applications import Starlette
 from starlette.responses import JSONResponse
 from starlette.routing import Mount
@@ -15,9 +16,8 @@ from now import __version__
 from now.executor.gateway.bff.app.decorators import api_method, timed
 from now.executor.gateway.bff.app.v1.routers.app import extras_router, search_app_router
 
-logging.config.dictConfig(api_settings.DEFAULT_LOGGING_CONFIG)
-logger = logging.getLogger('bff.app')
-logger.setLevel(api_settings.DEFAULT_LOGGING_LEVEL)
+os.environ["JINA_LOG_LEVEL"] = 'DEBUG'
+logger = JinaLogger('bff.app')
 
 TITLE = 'Jina NOW'
 DESCRIPTION = 'The Jina NOW service API'
