@@ -44,6 +44,7 @@
 
 
 
+
 <a name=release-note-0-0-7></a>
 ## Release Note (`0.0.7`)
 
@@ -1525,4 +1526,129 @@
  - [[```0b05a264```](https://github.com/jina-ai/now/commit/0b05a264ca629f9e107e4adba9f3b744000a3b2d)] __-__ Fix deploy examples (#680) (*Mohammad Kalim Akram*)
  - [[```0718e590```](https://github.com/jina-ai/now/commit/0718e59013917830a4df6c115ff0692130ff857b)] __-__ update pr template with customer deployment check (#968) (*Isabelle Mohr*)
  - [[```9ed1749a```](https://github.com/jina-ai/now/commit/9ed1749a7aaba6fafcdd7f828337a2ab612dd8e8)] __-__ __version__: the next version will be 0.0.51 (*Jina Dev Bot*)
+
+<a name=release-note-0-0-52></a>
+## Release Note (`0.0.52`)
+
+> Release time: 2023-03-29 09:19:56
+
+
+
+🙇 We'd like to thank all contributors for this new release! In particular,
+ Joschka Braun,  Tanguy Abel,  Mohammad Kalim Akram,  github-actions[bot],  Florian Hönicke,  IyadhKhalfallah,  Aziz Belaweid,  Isabelle Mohr,  Saba Sturua,  🙇
+
+
+### 🆕 New Features
+
+ - [[```44e8039a```](https://github.com/jina-ai/now/commit/44e8039a963876c09963e29b1b6734dd58798882)] __-__ define logger using JinaLogger (#1136) (*Tanguy Abel*)
+ - [[```e6be7fd6```](https://github.com/jina-ai/now/commit/e6be7fd6e62f146563f1330654086957ffe20a02)] __-__ reduce instances for indexer and gateway (#1211) (*Joschka Braun*)
+ - [[```d3399541```](https://github.com/jina-ai/now/commit/d33995419eca9f5df10462d768a7c4b1a7ae099c)] __-__ add billing logging (#1193) (*Aziz Belaweid*)
+ - [[```87faf085```](https://github.com/jina-ai/now/commit/87faf085d40bb65b95b9f7521affadc7be32f97e)] __-__ allow multiple filters (#1180) (*Isabelle Mohr*)
+ - [[```59145e82```](https://github.com/jina-ai/now/commit/59145e82f753a30cc2d5c21f5ddc15201e63571c)] __-__ introduce tracing (#1166) (*Joschka Braun*)
+ - [[```bd293aa1```](https://github.com/jina-ai/now/commit/bd293aa1f71a9d44b8931b7c2effb9613035b9cc)] __-__ demo ds info and source (#1171) (*Mohammad Kalim Akram*)
+ - [[```f3e1a1cf```](https://github.com/jina-ai/now/commit/f3e1a1cf800e808f73857f470853a566dd4fb533)] __-__ allow autoscaling on demo (#1158) (*IyadhKhalfallah*)
+ - [[```cd5b9304```](https://github.com/jina-ai/now/commit/cd5b93044fed6c2fdb7b97873e039ff8cfd01cc4)] __-__ add tagging to slack message (#1161) (*IyadhKhalfallah*)
+ - [[```9e8b7e99```](https://github.com/jina-ai/now/commit/9e8b7e99d1d42630502e90bdd23e83fb566b4b65)] __-__ add active flow emails to slack (#1139) (*IyadhKhalfallah*)
+ - [[```23dfa2dd```](https://github.com/jina-ai/now/commit/23dfa2dd8eeaa55984086eaa4ebd978de9d5fa7f)] __-__ specify shards and replicas for es-index-manager index creation (#1098) (*Isabelle Mohr*)
+ - [[```0a1b5e9c```](https://github.com/jina-ai/now/commit/0a1b5e9c236be46a06d3f49b146ace6167c4ab46)] __-__ script for preparing laion100m data (#1055) (*Saba Sturua*)
+ - [[```bacc9e71```](https://github.com/jina-ai/now/commit/bacc9e71833b2600629d1de0dc6df1fa5feb7c68)] __-__ integrate es index manager (#1049) (*Isabelle Mohr*)
+ - [[```eaba8847```](https://github.com/jina-ai/now/commit/eaba88471ff78f538bccc332614f2ebf6ed7abe8)] __-__ increase replicase (#1080) (*IyadhKhalfallah*)
+ - [[```49319452```](https://github.com/jina-ai/now/commit/49319452e98a560ffde6784df78321c6e367e786)] __-__ enable secured grpc custom gateway (#1040) (*Joschka Braun*)
+ - [[```7bb423ea```](https://github.com/jina-ai/now/commit/7bb423ea8feebd236cf661b24fb70c5872fcbcd1)] __-__ use aws configure profile (#1046) (*IyadhKhalfallah*)
+ - [[```5af72505```](https://github.com/jina-ai/now/commit/5af7250509152fe99c49145b99ae45494efecbb1)] __-__ expose scores in playground results (#1035) (*Isabelle Mohr*)
+ - [[```7cc153cc```](https://github.com/jina-ai/now/commit/7cc153cca807d8d8ea2226febd85a7d8b3a260a3)] __-__ make sbert serverless (#1020) (*Joschka Braun*)
+ - [[```a1c56d9c```](https://github.com/jina-ai/now/commit/a1c56d9c3aa83916097461900cbf37428c40fe9d)] __-__ add command &#39;logs&#39; to cli, to fetch logs from pods (#1014) (*Tanguy Abel*)
+
+### ⚡ Performance Improvements
+
+ - [[```b5e4ecc0```](https://github.com/jina-ai/now/commit/b5e4ecc09d81c82bb867be3d5e3a18d803dc974b)] __-__ create concurrent calls for listing s3 buckets (#1009) (*IyadhKhalfallah*)
+
+### 🐞 Bug fixes
+
+ - [[```d6be5748```](https://github.com/jina-ai/now/commit/d6be5748f2a2884a1759551aaa4582f79ac5000c)] __-__ remove grpc (#1215) (*Joschka Braun*)
+ - [[```d0d00588```](https://github.com/jina-ai/now/commit/d0d00588c4f7c4a990e52ce46e0b7e3fb2fad836)] __-__ bump version (#1226) (*Mohammad Kalim Akram*)
+ - [[```a8d75e04```](https://github.com/jina-ai/now/commit/a8d75e04b8bdc064ae15200a7484f1870359a3d7)] __-__ storage issue (#1220) (*Mohammad Kalim Akram*)
+ - [[```7bdc0fed```](https://github.com/jina-ai/now/commit/7bdc0fedc955a2b1eb86822e106c66cc0253d8f3)] __-__ use product id from summary (#1225) (*Mohammad Kalim Akram*)
+ - [[```a8794ae6```](https://github.com/jina-ai/now/commit/a8794ae6644b4957ad9ca0fb57849e6c7a19eac7)] __-__ merge two level sub-app (#1192) (*Mohammad Kalim Akram*)
+ - [[```2a661f78```](https://github.com/jina-ai/now/commit/2a661f785bbf809e3c5424f51deec545f317f3e2)] __-__ fix update durations (#1214) (*Joschka Braun*)
+ - [[```2730af6a```](https://github.com/jina-ai/now/commit/2730af6a3d11132c8a76f436af3a469d1ce93c3d)] __-__ add m2m token in env of gateway exec (#1198) (*Mohammad Kalim Akram*)
+ - [[```4af6a530```](https://github.com/jina-ai/now/commit/4af6a530f1a27834a07ede80c9332330fee50c97)] __-__ add gateway labels (#1202) (*IyadhKhalfallah*)
+ - [[```be74dc9e```](https://github.com/jina-ai/now/commit/be74dc9e80385173e32e924ad2c3dd1b8e7d0b9e)] __-__ memory leak sbert (#1194) (*Florian Hönicke*)
+ - [[```be3ee244```](https://github.com/jina-ai/now/commit/be3ee24434c082e599bfcbdb16966c3537f5b4c4)] __-__ custom dns for http (#1182) (*Mohammad Kalim Akram*)
+ - [[```0073977e```](https://github.com/jina-ai/now/commit/0073977e567fbd126b6f1fd3e0fb877dfc1f55c4)] __-__ user input bff (#1173) (*Mohammad Kalim Akram*)
+ - [[```4cf15961```](https://github.com/jina-ai/now/commit/4cf159614ba94b13e344047877c4848ef502dbc4)] __-__ shared bff user input in tests (#1167) (*Saba Sturua*)
+ - [[```e37a554a```](https://github.com/jina-ai/now/commit/e37a554a0556a03646a83ae89f1629be6cf7190e)] __-__ fix pandas for compare flows (#1160) (*Joschka Braun*)
+ - [[```449fd54e```](https://github.com/jina-ai/now/commit/449fd54ed668f791adf23f5b5fa13fe69387c77d)] __-__ add required packages to slack bot (#1162) (*IyadhKhalfallah*)
+ - [[```0b0dfa79```](https://github.com/jina-ai/now/commit/0b0dfa79e2d5a0c94dfd8cd2c86080ed21d280bb)] __-__ add limit to number of characters in slack message (#1155) (*IyadhKhalfallah*)
+ - [[```55b8c4e6```](https://github.com/jina-ai/now/commit/55b8c4e6f0df649fee03784b1d39973f1139f2c2)] __-__ remove limit for namespaces retrieval (#1152) (*IyadhKhalfallah*)
+ - [[```e4c0527f```](https://github.com/jina-ai/now/commit/e4c0527fc57c5e4668ecbbba49b668258241cfef)] __-__ update semantic scores based on dataclass fields of query (#1112) (*Isabelle Mohr*)
+ - [[```35f67ff6```](https://github.com/jina-ai/now/commit/35f67ff637e76301078b49455d9da0e0d4b8bab7)] __-__ fix loading text from local files (#1144) (*Joschka Braun*)
+ - [[```8adf558a```](https://github.com/jina-ai/now/commit/8adf558a07afdf540474fb6b9780dc310c4fad9a)] __-__ naming cd flows (#1146) (*Saba Sturua*)
+ - [[```326f05ee```](https://github.com/jina-ai/now/commit/326f05ee5eea2c396b0be8c314e9d28ddfee8f31)] __-__ spelling correction for dummy pr (#1141) (*Isabelle Mohr*)
+ - [[```9683010c```](https://github.com/jina-ai/now/commit/9683010cb74beff4cd96feeea54ad840b3d53dec)] __-__ enable spot capacity (#1134) (*IyadhKhalfallah*)
+ - [[```d0df4cd5```](https://github.com/jina-ai/now/commit/d0df4cd5421d97e13be58031026d8bf4ca00259b)] __-__ remove flows using their names (#1124) (*Saba Sturua*)
+ - [[```0725e7aa```](https://github.com/jina-ai/now/commit/0725e7aa12d00242caa8b78ea95b1fcfbf0883ff)] __-__ fix modality for s3 (#1107) (*Joschka Braun*)
+ - [[```c851831b```](https://github.com/jina-ai/now/commit/c851831bad1c76453623bf90a7cec220f1af436b)] __-__ import executors to make visible for yaml construct (#1089) (*Isabelle Mohr*)
+ - [[```922333e1```](https://github.com/jina-ai/now/commit/922333e1c9befcf28d2ee58c94b3e16a88777970)] __-__ add instance type (#1104) (*Aziz Belaweid*)
+ - [[```2c442249```](https://github.com/jina-ai/now/commit/2c4422490cc5fb731cb0ac9f7744a497f27f3bf1)] __-__ kind ebs (#1087) (*Florian Hönicke*)
+ - [[```3b54c531```](https://github.com/jina-ai/now/commit/3b54c531dde7053489e261ca3dc9b2475e12da17)] __-__ bulk index error (#1048) (*Isabelle Mohr*)
+ - [[```ba1e51cf```](https://github.com/jina-ai/now/commit/ba1e51cfd5d97473ee3924f9c110efb0f7bcc6d2)] __-__ first delete the flow (#1071) (*Mohammad Kalim Akram*)
+ - [[```06438a2f```](https://github.com/jina-ai/now/commit/06438a2f990f6a2b9928a79518f2949385fee3e9)] __-__ revert s3 optimization (#1063) (*Florian Hönicke*)
+ - [[```28ad4bee```](https://github.com/jina-ai/now/commit/28ad4bee74eec589857d624aaffa2ec300ff3f77)] __-__ only install the released version of jina now (#1027) (*Mohammad Kalim Akram*)
+ - [[```34dcb79a```](https://github.com/jina-ai/now/commit/34dcb79ad17e6d31fe975ebbbc0b855fdea1f562)] __-__ remove extra check in pre commit (#1061) (*IyadhKhalfallah*)
+ - [[```400eb277```](https://github.com/jina-ai/now/commit/400eb277ad1372093acf51b9af671d2235b0a8e6)] __-__ search on enter (#1060) (*Florian Hönicke*)
+ - [[```3c2c3162```](https://github.com/jina-ai/now/commit/3c2c31627dbb3dd2409ab4baf81a61900314477a)] __-__ field name conflicting with Document attributes leads to error (#1057) (*IyadhKhalfallah*)
+ - [[```fbf04255```](https://github.com/jina-ai/now/commit/fbf04255ce09fd54ef9f8ccec0c94d081adf6820)] __-__ s3 bucket tests (#1033) (*Saba Sturua*)
+ - [[```ce917312```](https://github.com/jina-ai/now/commit/ce917312aae133c2f12987daf5d4c7f3cb5cc5c4)] __-__ fix tags in search response model (#1028) (*Joschka Braun*)
+ - [[```b5494216```](https://github.com/jina-ai/now/commit/b5494216dc21a882a27c3001a961ce789468bb7e)] __-__ add slash to s3 path (#1024) (*Joschka Braun*)
+ - [[```79f04044```](https://github.com/jina-ai/now/commit/79f0404419f4392ff708020ad6016985282d3c64)] __-__ elastic persistent workspace (#992) (*Florian Hönicke*)
+ - [[```a1dd2c52```](https://github.com/jina-ai/now/commit/a1dd2c52a21bb0749727049e2111231e6dc284f0)] __-__ semantic scores (#989) (*Isabelle Mohr*)
+
+### 🧼 Code Refactoring
+
+ - [[```ee643cef```](https://github.com/jina-ai/now/commit/ee643cef8fe0d0b90b0ebc61e9d0c3839e463fcf)] __-__ update durations (#1229) (*github-actions[bot]*)
+ - [[```cb0a78f7```](https://github.com/jina-ai/now/commit/cb0a78f78534a444b79ca758aab2687f7e8e47c4)] __-__ remove dataasets (#1213) (*Florian Hönicke*)
+ - [[```0106831e```](https://github.com/jina-ai/now/commit/0106831e9b89f49b849969ea9142a468ec26a2ee)] __-__ improve test coverage for CLI (#1200) (*IyadhKhalfallah*)
+ - [[```5baa02cd```](https://github.com/jina-ai/now/commit/5baa02cd62a67d8d579af782c3eaa3ad95701f1a)] __-__ remove redundant code (#1123) (*Florian Hönicke*)
+ - [[```cea1885a```](https://github.com/jina-ai/now/commit/cea1885a1019ed222f0dea72fa30ec55d4cca004)] __-__ remove dup code (#1189) (*Aziz Belaweid*)
+ - [[```a97e546d```](https://github.com/jina-ai/now/commit/a97e546d19d5b39cf1d08f9428c7732d73ce91c4)] __-__ create utils module (#1169) (*IyadhKhalfallah*)
+ - [[```fcf36c23```](https://github.com/jina-ai/now/commit/fcf36c23a7d2cdcc0f990bc106681be4ce3e5908)] __-__ score calculation naming (#1153) (*Joschka Braun*)
+ - [[```69dccc14```](https://github.com/jina-ai/now/commit/69dccc14234319f4e9878e23db794c175f61832d)] __-__ hardcode s3 dataset paths (#1154) (*Saba Sturua*)
+ - [[```28179de2```](https://github.com/jina-ai/now/commit/28179de2ccd880dc94248be6be0bfe3093f74309)] __-__ remove port host docs bff (#1150) (*Joschka Braun*)
+ - [[```ef3fe1a9```](https://github.com/jina-ai/now/commit/ef3fe1a93280946306e5f7d85ae804aac7cef64c)] __-__ external sbert (#1126) (*Florian Hönicke*)
+ - [[```3a95729a```](https://github.com/jina-ai/now/commit/3a95729a0cbf417a2df23ac36b02bca145e4fb98)] __-__ remove duplicates and add /info tests (#1083) (*IyadhKhalfallah*)
+ - [[```05bd7b84```](https://github.com/jina-ai/now/commit/05bd7b847e5905e274de076e1252d5d652db4faf)] __-__ batchwise indexing (#1114) (*Joschka Braun*)
+ - [[```294660ff```](https://github.com/jina-ai/now/commit/294660ff3f4a41bd3d68a2c25ea4a7ccaa7341fc)] __-__ spot instances (#1119) (*Florian Hönicke*)
+ - [[```d9614fc2```](https://github.com/jina-ai/now/commit/d9614fc28cfea126a26ebac2235b51a698980d6d)] __-__ use app.setup instead of manually creating flows (#1036) (*Saba Sturua*)
+ - [[```0a47c8c0```](https://github.com/jina-ai/now/commit/0a47c8c0970360f9c50126013f4a232a78a8698a)] __-__ remove survey (#1062) (*Florian Hönicke*)
+ - [[```dc121dc4```](https://github.com/jina-ai/now/commit/dc121dc4a0c9c131be4270c2f88bbb5e2a166dea)] __-__ update durations (*github-actions[bot]*)
+ - [[```6bdbf4dc```](https://github.com/jina-ai/now/commit/6bdbf4dc378767a98217ef02936e9d691f51f26c)] __-__ s3 data loading in tests (#1023) (*Saba Sturua*)
+ - [[```4d3ffcd3```](https://github.com/jina-ai/now/commit/4d3ffcd3887760d1ecbdc9afea94bb76282b6b92)] __-__ elastic update tags (#1011) (*Florian Hönicke*)
+ - [[```cf267ac1```](https://github.com/jina-ai/now/commit/cf267ac18e60f97bbc994aa27b5e65a4eb60947e)] __-__ cleanup dataclass creation (#1007) (*Saba Sturua*)
+
+### 📗 Documentation
+
+ - [[```aa8e4c74```](https://github.com/jina-ai/now/commit/aa8e4c74df9295222d1b9e6bb3feb077f93a9d5a)] __-__ update api usage (#975) (*Isabelle Mohr*)
+
+### 🏁 Unit Test and CICD
+
+ - [[```57b36d46```](https://github.com/jina-ai/now/commit/57b36d467959f9004ef5b85d2170a230b34de77f)] __-__ improve indexer test coverage (#1207) (*IyadhKhalfallah*)
+ - [[```21583a68```](https://github.com/jina-ai/now/commit/21583a68bc4938da7e2476bdf7fcd92eae36db17)] __-__ improve test coverage for compare (#1208) (*IyadhKhalfallah*)
+ - [[```462d046d```](https://github.com/jina-ai/now/commit/462d046ddbf4619202ab61313648d4289c36e21c)] __-__ add run_k8s coverage (#1188) (*IyadhKhalfallah*)
+ - [[```ef28939b```](https://github.com/jina-ai/now/commit/ef28939b470fcee15ba02d49726155d75df0fefb)] __-__ add client coverage (#1199) (*Aziz Belaweid*)
+ - [[```bfc1415c```](https://github.com/jina-ai/now/commit/bfc1415ce289543fc7c50dcafca277b4697c575f)] __-__ add preprocessor tests (#1179) (*Aziz Belaweid*)
+ - [[```39af095b```](https://github.com/jina-ai/now/commit/39af095b97c77317599e65a58261b1772ed84c1e)] __-__ remove also flows on cd (#1181) (*Joschka Braun*)
+ - [[```1abf94a3```](https://github.com/jina-ai/now/commit/1abf94a33e936b2d0081193f199648444faf2ff8)] __-__ increase coverage of dialog (#1163) (*Isabelle Mohr*)
+ - [[```b0d7d320```](https://github.com/jina-ai/now/commit/b0d7d32039307edd52110ead94a565e5fe4c1007)] __-__ improve utils coverage (#1157) (*Saba Sturua*)
+ - [[```48e7e2bb```](https://github.com/jina-ai/now/commit/48e7e2bbcf7213d4635b14b7665c14e86fa92a75)] __-__ use right volume (#1064) (*Florian Hönicke*)
+
+### 🍹 Other Improvements
+
+ - [[```3c96a2d0```](https://github.com/jina-ai/now/commit/3c96a2d0498ecb1f4022c42689631679f47b94d1)] __-__ Fix unit tests and update durations yml file (#1231) (*Mohammad Kalim Akram*)
+ - [[```1a33d146```](https://github.com/jina-ai/now/commit/1a33d146112c59698518cad886368b8b8cfea6bb)] __-__ bump jcloud version (#1143) (*Saba Sturua*)
+ - [[```3fe2bd1c```](https://github.com/jina-ai/now/commit/3fe2bd1c65412d0243324ebcde81c646bb85fb27)] __-__ cancel old workflows on ci (#1131) (*Saba Sturua*)
+ - [[```0063e577```](https://github.com/jina-ai/now/commit/0063e5777d30148deabf43d6367b61968925a886)] __-__ fix codecov (#1135) (*Isabelle Mohr*)
+ - [[```e14d2164```](https://github.com/jina-ai/now/commit/e14d216494509955e0d374fe77061ca87dce90a7)] __-__ dummy change (#1138) (*Tanguy Abel*)
+ - [[```9711bd3b```](https://github.com/jina-ai/now/commit/9711bd3bf870c25e14df007aafa4e3ddf220104c)] __-__ autoscaling for suggestion executor and gateway (#1120) (*IyadhKhalfallah*)
+ - [[```26363d25```](https://github.com/jina-ai/now/commit/26363d25380c7d91d9b0aef12f69d49d5671802c)] __-__ cli dynamic options (#1039) (*Tanguy Abel*)
 
