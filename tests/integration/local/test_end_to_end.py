@@ -27,7 +27,7 @@ def test_end_to_end(
     mock_hubble_billing_report, get_flow, setup_service_running, random_index_name
 ):
     docs, user_input = get_flow
-    client = Client(host='grpc://localhost:8085')
+    client = Client(host='http://localhost:8081')
 
     client.index(
         docs,

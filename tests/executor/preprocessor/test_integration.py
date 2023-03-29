@@ -25,8 +25,8 @@ def test_search_app(resources_folder_path, tmpdir, mm_dataclass):
 
     with Flow().config_gateway(
         uses=NOWGateway,
-        protocol=['http', 'grpc'],
-        port=[8081, 8085],
+        protocol=['http'],
+        port=[8081],
         env={'JINA_LOG_LEVEL': 'DEBUG'},
     ).add(uses=NOWPreprocessor, workspace=tmpdir, env={'JINA_LOG_LEVEL': 'DEBUG'}) as f:
         for endpoint in ['index', 'search']:

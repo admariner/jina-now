@@ -114,8 +114,8 @@ class JinaNOWApp:
             'uses': f'jinahub+docker://{name_to_id_map.get("NOWGateway")}/{NOW_GATEWAY_VERSION}'
             if not testing
             else 'NOWGateway',
-            'protocol': ['http', 'grpc'],
-            'port': [8081, 8085],
+            'protocol': ['http'],
+            'port': [8081],
             'monitoring': True,
             'cors': True,
             'uses_with': {'user_input_dict': user_input.to_safe_dict()},

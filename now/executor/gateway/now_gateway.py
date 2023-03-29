@@ -68,7 +68,7 @@ class BFFGateway(FastAPIBaseGateway):
 
 
 class NOWGateway(CompositeGateway):
-    """The NOWGateway assumes that the gateway has been started with http on port 8081 and grpc on port 8085.
+    """The NOWGateway assumes that the gateway has been started with http on port 8081.
     This is the port on which the nginx process listens. After nginx has been started,
     it will start the playground on port 8501 and the BFF on port 8080. The actual
     HTTP gateway will start on port 8082.
@@ -76,23 +76,15 @@ class NOWGateway(CompositeGateway):
     - /playground -> playground on port 8501
     - /api -> BFF on port 8080
     - / -> HTTP gateway on port 8082
-    No rerouting is done for the grpc gateway.
     """
 
     def __init__(self, user_input_dict: Dict = {}, **kwargs):
         # need to update port ot 8082, as nginx will listen on 8081
         http_idx = kwargs['runtime_args']['protocol'].index(GatewayProtocolType.HTTP)
         http_port = kwargs['runtime_args']['port'][http_idx]
-        grpc_idx = kwargs['runtime_args']['protocol'].index(GatewayProtocolType.GRPC)
-        grpc_port = kwargs['runtime_args']['port'][grpc_idx]
         if kwargs['runtime_args']['port'][http_idx] != 8081:
             raise ValueError(
                 f'Please, let http port ({http_port}) be 8081 for nginx to work'
-            )
-        if grpc_port in [8080, 8081, 8082, 8501]:
-            raise ValueError(
-                f'Please, let grpc port ({grpc_port}) be different from 8080 (BFF), '
-                f'8081 (nginx), 8082 (http) and 8501 (playground)'
             )
         kwargs['runtime_args']['port'][http_idx] = 8082
         super().__init__(**kwargs)

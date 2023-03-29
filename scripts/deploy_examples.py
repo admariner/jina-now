@@ -131,7 +131,7 @@ def deploy(demo_ds):
         upsert_cname_record(host_source, host_target_)
     else:
         print(
-            'No host returned starting with "grpcs://". Make sure Jina NOW returns host'
+            'No host returned starting with "https://". Make sure Jina NOW returns host'
         )
     return response_cli
 
@@ -165,7 +165,7 @@ if __name__ == '__main__':
     if deployment_type == 'partial':
         # check if deployment is already running then return
         client = Client(
-            host=f'grpcs://{DEMO_NS.format(to_deploy.name.split("/")[-1])}.dev.jina.ai'
+            host=f'https://{DEMO_NS.format(to_deploy.name.split("/")[-1])}.dev.jina.ai'
         )
         try:
             response = client.post('/dry_run', return_results=True)

@@ -36,24 +36,17 @@ def start_now(**kwargs):
     # Only if the deployment is remote and the demo examples is available for the selected app
     # Should not be triggered for CI tests
     if app_instance.is_demo_available(user_input):
-        gateway_host_grpc = f'grpcs://{DEMO_NS.format(user_input.dataset_name.split("/")[-1])}.dev.jina.ai'
+        gateway_host_http = f'https://{DEMO_NS.format(user_input.dataset_name.split("/")[-1])}.dev.jina.ai'
     else:
-        (
-            gateway_port,
-            gateway_host_grpc,
-        ) = run_backend.run(app_instance, user_input, **kwargs)
-    gateway_host_http = gateway_host_grpc.replace('grpc', 'http')
+        gateway_host_http = run_backend.run(app_instance, user_input, **kwargs)
     bff_url = f'{gateway_host_http}/api/v1/search-app/docs'
     playground_url = f'{gateway_host_http}/playground'
 
-    _generate_info_table(
-        gateway_host_http, gateway_host_grpc, bff_url, playground_url, user_input
-    )
+    _generate_info_table(gateway_host_http, bff_url, playground_url, user_input)
     return {
         'bff': bff_url,
         'playground': playground_url,
         'host_http': gateway_host_http,
-        'host_grpc': gateway_host_grpc,
         'secured': user_input.secured,
     }
 
@@ -206,9 +199,7 @@ def get_flow_status(action, **kwargs):
     return _result, flow_id, cluster
 
 
-def _generate_info_table(
-    gateway_host_http, gateway_host_grpc, bff_url, playground_url, user_input
-):
+def _generate_info_table(gateway_host_http, bff_url, playground_url, user_input):
     info_table = Table(
         'Attribute',
         Column(header="Value", overflow="fold"),
@@ -217,7 +208,6 @@ def _generate_info_table(
         highlight=True,
     )
     info_table.add_row('Host (HTTPS)', gateway_host_http)
-    info_table.add_row('Host (GRPCS)', gateway_host_grpc)
     info_table.add_row('API docs', bff_url)
     if user_input.secured and user_input.api_key:
         info_table.add_row('API Key', user_input.api_key)

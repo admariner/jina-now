@@ -18,7 +18,7 @@ update_emails_url = f'{BASE_URL}/admin/updateUserEmails'
 )
 def test_add_key(mock_hubble_billing_report, get_flow, setup_service_running):
     docs, user_input = get_flow
-    client = Client(host='grpc://localhost:8085')
+    client = Client(host='http://localhost:8081')
     client.index(
         docs,
         parameters={

@@ -43,9 +43,7 @@ def run(
     # Set up the app specific flow
     app_instance.setup(user_input=user_input)
 
-    client, gateway_port, gateway_host_internal = deploy_flow(
-        flow_yaml=app_instance.flow_yaml
-    )
+    client, gateway_host_http = deploy_flow(flow_yaml=app_instance.flow_yaml)
 
     # TODO at the moment the scheduler is not working. So we index the data right away
     # if (
@@ -60,10 +58,7 @@ def run(
     print_callback('Flow deployed. Indexing the data...')
     index_docs(user_input, dataset, client, print_callback, **kwargs)
 
-    return (
-        gateway_port,
-        gateway_host_internal,
-    )
+    return gateway_host_http
 
 
 def trigger_scheduler(user_input, host):

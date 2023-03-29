@@ -19,9 +19,6 @@ def test_search_image(resources_folder_path: str):
 
 
 def assert_deployment_response(response):
-    host_grpc = response['host_grpc']
-    assert host_grpc.startswith('grpcs://')
-    assert host_grpc.endswith('.wolf.jina.ai')
     host_http = response['host_http']
     assert host_http.startswith('https://')
     assert host_http.endswith('.wolf.jina.ai')

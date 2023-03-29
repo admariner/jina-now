@@ -17,7 +17,7 @@ from now.constants import ACCESS_PATHS
 )
 def test_search_filters(mock_hubble_billing_report, get_flow, setup_service_running):
     docs, _ = get_flow
-    client = Client(host='grpc://localhost:8085')
+    client = Client(host='http://localhost:8081')
     client.index(
         docs,
         parameters={
