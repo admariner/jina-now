@@ -1,15 +1,11 @@
 import datetime
 import json
 import os
-import threading
-from time import sleep
 
 from hubble.payment.client import PaymentClient
 from jina.logging.logger import JinaLogger
 
 from now.constants import (
-    NOWGATEWAY_BASE_FEE_QUANTITY,
-    NOWGATEWAY_BASE_FEE_SLEEP_INTERVAL,
     NOWGATEWAY_SEARCH_FEE_PRO_QUANTITY,
     NOWGATEWAY_SEARCH_FEE_QUANTITY,
 )
@@ -24,18 +20,6 @@ def current_time():
     return datetime.datetime.utcnow().isoformat() + 'Z'
 
 
-def start_base_fee_thread(user_token, inf_token, storage_dir):
-    logger.info('Starting base fee thread')
-    global old_user_token, authorized_jwt
-    old_user_token = user_token  # incase no token is passed with search request
-    if inf_token:  # if inf_token is passed, use it mostly in case of gateway restart
-        authorized_jwt = inf_token
-    init_payment_client(user_token)
-    save_cred(storage_dir)
-    thread = threading.Thread(target=base_fee_thread, args=(user_token,))
-    thread.start()
-
-
 def save_cred(storage_dir):
     if storage_dir and os.path.exists(storage_dir):
         with open(f'{storage_dir}/cred.json', 'w+') as f:
@@ -44,13 +28,14 @@ def save_cred(storage_dir):
         logger.info('No storage dir found. Not saving cred.json')
 
 
-def base_fee_thread(user_token):
-    while True:
-        sleep(NOWGATEWAY_BASE_FEE_SLEEP_INTERVAL)
-        report(
-            quantity_basic=NOWGATEWAY_BASE_FEE_QUANTITY,
-            quantity_pro=NOWGATEWAY_BASE_FEE_QUANTITY,
-        )
+def init_payment_params(user_token, inf_token, storage_dir):
+    logger.info('Starting base fee thread')
+    global old_user_token, authorized_jwt
+    old_user_token = user_token  # incase no token is passed with search request
+    if inf_token:  # if inf_token is passed, use it mostly in case of gateway restart
+        authorized_jwt = inf_token
+    init_payment_client(user_token)
+    save_cred(storage_dir)
 
 
 def report_search_usage(user_token):
@@ -89,12 +74,15 @@ def init_payment_client(user_token):
 
 def report(quantity_basic, quantity_pro, auth_jwt=None):
     global authorized_jwt
+    global payment_client
+    m2m_token = os.environ.get('M2M')
+    payment_client = payment_client or PaymentClient(m2m_token=m2m_token)
     authorized_jwt = authorized_jwt or auth_jwt
     logger.info('Time of reporting for credits usage: {}'.format(current_time()))
     app_id = 'search'
     try:
         logger.info(f'Authorized JWT: {authorized_jwt[:10]}...{authorized_jwt[-10:]}')
-        summary = get_summary()
+        summary = get_summary(auth_jwt=authorized_jwt)
         product_id = summary['internal_product_id']
         logger.info(f'Credits before: {summary["credits"]} & product_id: {product_id}')
         if product_id == 'free-plan':
@@ -104,7 +92,7 @@ def report(quantity_basic, quantity_pro, auth_jwt=None):
         if can_charge(summary):
             payment_client.report_usage(authorized_jwt, app_id, product_id, quantity)  # type: ignore
             logger.info(f'**** `{round(quantity, 3)}` credits charged ****')
-            summary = get_summary()
+            summary = get_summary(auth_jwt=authorized_jwt)
             logger.info(f'Credits after: {summary["credits"]}')
         else:
             logger.info(f'**** Could not charge. Check payment summary ****')
@@ -119,6 +107,9 @@ def report(quantity_basic, quantity_pro, auth_jwt=None):
 
 def get_summary(auth_jwt=None):
     global authorized_jwt
+    global payment_client
+    m2m_token = os.environ.get('M2M')
+    payment_client = payment_client or PaymentClient(m2m_token=m2m_token)
     authorized_jwt = authorized_jwt or auth_jwt
     resp = payment_client.get_summary(token=authorized_jwt, app_id='search')  # type: ignore
     has_payment_method = resp['data'].get('hasPaymentMethod', False)

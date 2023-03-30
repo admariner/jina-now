@@ -1,18 +1,16 @@
 from pytest_mock import MockerFixture
 
 from now.executor.gateway import NOWGateway
-from now.executor.gateway.hubble_report import save_cred, start_base_fee_thread
+from now.executor.gateway.hubble_report import init_payment_params, save_cred
 
 
-def test_start_base_fee_thread(mocker: MockerFixture):
+def test_init_payment_params(mocker: MockerFixture):
     mocker.patch(
         'now.executor.gateway.hubble_report.init_payment_client', return_value='PASSED'
     )
     mocker.patch('now.executor.gateway.hubble_report.save_cred', return_value='PASSED')
-    mocker.patch(
-        'now.executor.gateway.hubble_report.base_fee_thread', return_value='PASSED'
-    )
-    start_base_fee_thread('test', 'test', 'test')
+
+    init_payment_params('test', 'test', 'test')
 
 
 def test_save_cred():

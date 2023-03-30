@@ -15,7 +15,7 @@ from streamlit.web.server import Server as StreamlitServer
 
 from now.constants import NOWGATEWAY_BFF_PORT
 from now.deployment import deployment
-from now.executor.gateway.hubble_report import start_base_fee_thread
+from now.executor.gateway.hubble_report import init_payment_params
 from now.now_dataclasses import UserInput
 
 cur_dir = os.path.dirname(__file__)
@@ -151,11 +151,11 @@ class NOWGateway(CompositeGateway):
                 self.logger.info('No cred.json file found to load from')
 
         try:
-            start_base_fee_thread(
+            init_payment_params(
                 self.user_input.jwt['token'], self.authorized_jwt, self.storage_dir
             )
         except Exception as e:
-            self.logger.error(f'Could not start base fee thread: {e}')
+            self.logger.error(f'Could not init payment params')
 
     def _check_env_vars(self):
         while 'M2M' not in os.environ:
