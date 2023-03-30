@@ -15,7 +15,6 @@ import streamlit.components.v1 as components
 from better_profanity import profanity
 from docarray import Document, DocumentArray
 from docarray.typing import Image, Text
-from jina.logging.logger import JinaLogger
 from streamlit.runtime import Runtime
 from streamlit.runtime.scriptrunner import add_script_run_ctx
 from streamlit.web.server.server import Server
@@ -32,9 +31,6 @@ from now.executor.gateway.playground.src.search import (
 from now.now_dataclasses import UserInput
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
-
-os.environ["JINA_LOG_LEVEL"] = 'DEBUG'
-logger = JinaLogger('bff.app')
 
 # HEADER
 st.set_page_config(page_title='NOW', page_icon='https://jina.ai/favicon.ico')
@@ -97,7 +93,6 @@ def deploy_streamlit(user_input: UserInput):
     # Start with setting up the vars default values then proceed to placing UI components
     # Set up session state vars if not already set
     setup_session_state()
-    logger.info("*** Deploying streamlit ***")
 
     # Retrieve query params
     params = get_query_params()
