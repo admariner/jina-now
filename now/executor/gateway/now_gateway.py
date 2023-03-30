@@ -14,7 +14,7 @@ from streamlit.file_util import get_streamlit_file_path
 from streamlit.web.server import Server as StreamlitServer
 
 from now.constants import NOWGATEWAY_BFF_PORT
-from now.deployment.deployment import cmd
+from now.deployment import deployment
 from now.executor.gateway.hubble_report import start_base_fee_thread
 from now.now_dataclasses import UserInput
 
@@ -196,13 +196,13 @@ class NOWGateway(CompositeGateway):
 
     def _run_nginx_command(self, command: List[str]) -> Tuple[bytes, bytes]:
         self.logger.info(f'Running command: {command}')
-        output, error = cmd(command)
+        output, error = deployment.cmd(command)
         if error != b'':
             # on CI we need to use sudo; using NOW_CI_RUN isn't good if running test locally
             self.logger.info(f'nginx error: {error}')
             command.insert(0, 'sudo')
             self.logger.info(f'So running command: {command}')
-            output, error = cmd(command)
+            output, error = deployment.cmd(command)
         sleep(10)
         return output, error
 

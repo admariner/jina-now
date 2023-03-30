@@ -48,7 +48,6 @@ def base_fee_thread(user_token):
     while True:
         sleep(NOWGATEWAY_BASE_FEE_SLEEP_INTERVAL)
         report(
-            user_token=user_token,
             quantity_basic=NOWGATEWAY_BASE_FEE_QUANTITY,
             quantity_pro=NOWGATEWAY_BASE_FEE_QUANTITY,
         )
@@ -58,7 +57,6 @@ def report_search_usage(user_token):
     logger.info('** Entered report_search_usage() **')
     init_payment_client(user_token)
     report(
-        user_token=user_token,
         quantity_basic=NOWGATEWAY_SEARCH_FEE_QUANTITY,
         quantity_pro=NOWGATEWAY_SEARCH_FEE_PRO_QUANTITY,
     )
@@ -89,11 +87,12 @@ def init_payment_client(user_token):
         raise e
 
 
-def report(user_token, quantity_basic, quantity_pro):
+def report(quantity_basic, quantity_pro, auth_jwt=None):
+    global authorized_jwt
+    authorized_jwt = authorized_jwt or auth_jwt
     logger.info('Time of reporting for credits usage: {}'.format(current_time()))
     app_id = 'search'
     try:
-        logger.info(f'Charging user with token {user_token or old_user_token}')
         logger.info(f'Authorized JWT: {authorized_jwt[:10]}...{authorized_jwt[-10:]}')
         summary = get_summary()
         product_id = summary['internal_product_id']
@@ -118,7 +117,9 @@ def report(user_token, quantity_basic, quantity_pro):
         raise e
 
 
-def get_summary():
+def get_summary(auth_jwt=None):
+    global authorized_jwt
+    authorized_jwt = authorized_jwt or auth_jwt
     resp = payment_client.get_summary(token=authorized_jwt, app_id='search')  # type: ignore
     has_payment_method = resp['data'].get('hasPaymentMethod', False)
     user_credits = resp['data'].get('credits', None)

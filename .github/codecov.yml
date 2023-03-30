@@ -14,4 +14,4 @@ coverage:
     branches:               # branch names that can post comment
       - "main"
 ignore:
-  - "now/executor/gateway/playground/playground.py"
+  - "now/executor/gateway/playground/**/*"

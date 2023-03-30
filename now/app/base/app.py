@@ -183,7 +183,7 @@ class JinaNOWApp:
         }
         # Call the gateway stub function to get the gateway for the flow
         # Call the executor stubs function to get the executors for the flow
-        # append user_input and api_keys to all executors except the remote executors
+        # append user_input and api_keys to all executors except the remote ones
         user_input_dict = user_input.to_safe_dict()
         admin_emails = user_input.admin_emails or [] if user_input.secured else []
         user_emails = user_input.user_emails or [] if user_input.secured else []

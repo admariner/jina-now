@@ -54,7 +54,7 @@ def run(
     #     # schedule the trigger which will sync the bucket with the indexer once a day
     #     trigger_scheduler(user_input, gateway_host_internal)
     # else:
-    # index the data right away
+    # index data right away
     print_callback('Flow deployed. Indexing the data...')
     index_docs(user_input, dataset, client, print_callback, **kwargs)
 
