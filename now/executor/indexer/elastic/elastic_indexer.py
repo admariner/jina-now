@@ -9,7 +9,11 @@ from docarray import Document, DocumentArray
 from elasticsearch import Elasticsearch
 from elasticsearch.helpers import bulk
 
-from now.constants import DatasetTypes
+from now.constants import (
+    NOW_ELASTIC_FETCH_MAX_VALUES_PER_TAG,
+    NOW_ELASTIC_POST_FIX_FILTERS_TEXT_SEARCH,
+    DatasetTypes,
+)
 from now.executor.abstract.auth import (
     SecurityLevel,
     get_auth_executor_class,
@@ -140,7 +144,10 @@ class NOWElasticIndexer(Executor):
             es_mapping['properties']['tags'] = {'type': 'object', 'properties': {}}
             for field in self.user_input.filter_fields:
                 es_mapping['properties']['tags']['properties'][field] = {
-                    'type': 'keyword'
+                    'type': 'keyword',
+                    'fields': {
+                        NOW_ELASTIC_POST_FIX_FILTERS_TEXT_SEARCH: {'type': 'text'}
+                    },
                 }
 
         for encoder, embedding_size, fields in self.document_mappings:
@@ -455,6 +462,9 @@ class NOWElasticIndexer(Executor):
         indexed documents. It then queries elasticsearch for an aggregation of all values
         inside this field, and updates the self.filters_val_dict dictionary with tags as keys,
         and values as values in the dictionary.
+
+        Note, this will only fetch the NOW_ELASTIC_FETCH_MAX_VALUES_PER_TAG unique values
+        per tag.
         """
         es_mapping = self.es.indices.get_mapping(index=self.index_name)
         tag_categories = (
@@ -478,7 +488,10 @@ class NOWElasticIndexer(Executor):
             ]:
                 if map['type'] == tag_type:
                     aggs['aggs'][tag] = {
-                        'terms': {'field': f'tags.{tag}{extension}', 'size': 100}
+                        'terms': {
+                            'field': f'tags.{tag}{extension}',
+                            'size': NOW_ELASTIC_FETCH_MAX_VALUES_PER_TAG,
+                        }
                     }
 
         try:

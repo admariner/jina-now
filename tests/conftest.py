@@ -3,6 +3,7 @@ import base64
 import json
 import os
 import random
+import shutil
 import time
 from collections import namedtuple
 from warnings import catch_warnings, filterwarnings
@@ -26,6 +27,7 @@ from now.data_loading.data_loading import _list_s3_file_paths, load_data
 from now.data_loading.elasticsearch import ElasticsearchConnector
 from now.demo_data import DemoDatasetNames
 from now.deployment.deployment import cmd
+from now.executor.gateway.bff.app.settings import init_user_input_in_bff
 from now.executor.preprocessor import NOWPreprocessor
 from now.executor.preprocessor.s3_download import get_bucket
 from now.now_dataclasses import UserInput
@@ -164,9 +166,16 @@ def es_connection_params():
 
 @pytest.fixture(scope='function')
 def remove_user_input_file() -> None:
-    # If user_input.json exists, then remove it
-    if os.path.exists(os.path.join(os.path.expanduser('~'), 'user_input.json')):
-        os.remove(os.path.join(os.path.expanduser('~'), 'user_input.json'))
+    user_input_in_bff_path = os.path.join(os.path.expanduser('~'), 'user_input.json')
+    moved_user_input_in_bff_path = False
+    if os.path.exists(user_input_in_bff_path):
+        shutil.move(user_input_in_bff_path, f'{user_input_in_bff_path}.bak')
+        moved_user_input_in_bff_path = True
+    init_user_input_in_bff()
+    yield
+    if moved_user_input_in_bff_path:
+        shutil.move(f'{user_input_in_bff_path}.bak', user_input_in_bff_path)
+        init_user_input_in_bff()
 
 
 @pytest.fixture(scope="function")
@@ -174,6 +183,7 @@ def dump_user_input(request) -> None:
     # Dump the user input
     with open(os.path.join(os.path.expanduser('~'), 'user_input.json'), 'w') as f:
         json.dump(request.param.to_safe_dict(), f)
+    init_user_input_in_bff()
     yield
     os.remove(os.path.join(os.path.expanduser('~'), 'user_input.json'))
 

@@ -27,7 +27,6 @@ def field_dict_to_mm_doc(
     :param field_names_to_dataclass_fields: mapping of field names to data class fields (e.g. {'title': 'text_0'})
     :return: multi-modal document
     """
-
     with TemporaryDirectory() as tmp_dir:
         try:
             if field_names_to_dataclass_fields:

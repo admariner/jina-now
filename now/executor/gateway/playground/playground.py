@@ -21,7 +21,11 @@ from streamlit.web.server.server import Server
 from tornado.httputil import parse_cookie
 
 from now.app.base.create_jcloud_name import create_jcloud_name
-from now.constants import MODALITY_TO_MODELS, NOWGATEWAY_BFF_PORT
+from now.constants import (
+    MODALITY_TO_MODELS,
+    NOW_ELASTIC_FETCH_MAX_VALUES_PER_TAG,
+    NOWGATEWAY_BFF_PORT,
+)
 from now.executor.gateway.playground.src.constants import BUTTONS, SSO_COOKIE
 from now.executor.gateway.playground.src.search import (
     call_flow,
@@ -163,6 +167,9 @@ def process_filters():
                 processed_filters[field] = {'gte': values[0], 'lte': values[1]}
         elif isinstance(values, int) or isinstance(values, float):
             processed_filters[field] = {'gte': values}
+        elif isinstance(values, str):
+            if values != '':
+                processed_filters[field] = values
         else:
             raise ValueError(f'Filter values {values} are not supported.')
     st.session_state.filter_selection = processed_filters
@@ -187,9 +194,12 @@ def render_filters(params):
                     tag, min_val, max_val, (min_val, max_val)
                 )
             elif isinstance(values[0], str):
-                st.session_state.filter_selection[tag] = st.sidebar.multiselect(
-                    tag, values
-                )
+                if len(values) < NOW_ELASTIC_FETCH_MAX_VALUES_PER_TAG:
+                    st.session_state.filter_selection[tag] = st.sidebar.multiselect(
+                        tag, values
+                    )
+                else:
+                    st.session_state.filter_selection[tag] = st.sidebar.text_input(tag)
         st.session_state.filters_set = True
 
     process_filters()

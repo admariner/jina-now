@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 from docarray import Document, DocumentArray
 
+from now.constants import NOW_ELASTIC_POST_FIX_FILTERS_TEXT_SEARCH
 from now.utils.docarray.helpers import get_chunk_by_field_name
 
 metrics_mapping = {
@@ -159,9 +160,12 @@ def get_default_query(
     score_calculation: List[Tuple],
     filter: Dict = {},
 ):
+    # only match_all if no filter is applied
     query = {
         'bool': {
-            'should': [
+            'should': []
+            if filter
+            else [
                 {'match_all': {}},
             ],
         },
@@ -182,8 +186,7 @@ def get_default_query(
 
     # add filter
     if filter:
-        es_search_filter = process_filter(filter)
-        query['bool']['filter'] = es_search_filter
+        query['bool']['filter'] = process_filter(filter)
 
     return query
 
@@ -198,19 +201,28 @@ def get_pinned_query(doc: Document, query_to_curated_ids: Dict[str, list] = {}) 
 
 
 def process_filter(
-    filter: Dict[str, Union[List[str], Dict[str, float]]]
+    filter: Dict[str, Union[str, List[str], Dict[str, float]]]
 ) -> List[Dict[str, Any]]:
     es_search_filters = []
     for field, filters in filter.items():
         field = field.replace('__', '.', 1)
         es_search_filter = {}
-        if isinstance(filters, list):  # must be categorical (list of terms)
+        if isinstance(
+            filters, list
+        ):  # must be categorical (list of terms) so use keyword field
             es_search_filter['terms'] = {field: filters}
         elif isinstance(filters, dict):  # must be numerical (range with operators)
             es_search_filter['range'] = {field: filters}
+        elif isinstance(
+            filters, str
+        ):  # is a text search so use standard analyzer field
+            es_search_filter['match'] = {
+                f'{field}.{NOW_ELASTIC_POST_FIX_FILTERS_TEXT_SEARCH}': filters
+            }
         else:
             raise ValueError(
-                f'Filter {field}: {filters} is not a list of terms or a dictionary of ranges'
+                f'Filter {field}: {filters} (type: {type(filters)}) is not a list of terms or '
+                f'a dictionary of ranges or a string to match.'
             )
         es_search_filters.append(es_search_filter)
     return es_search_filters

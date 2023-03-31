@@ -4,9 +4,9 @@ from docarray.typing import Image, Text, Video
 
 from now.utils.common.helpers import BetterEnum
 
-NOW_GATEWAY_VERSION = '0.0.6-fix-remove-autocomplete-1'
+NOW_GATEWAY_VERSION = '0.0.6-feat-improve-elastic-filter-20'
 NOW_PREPROCESSOR_VERSION = '0.0.125-fix-gateway-coverage-5'
-NOW_ELASTIC_INDEXER_VERSION = '0.0.149-fix-gateway-coverage-5'
+NOW_ELASTIC_INDEXER_VERSION = '0.0.149-feat-improve-elastic-filter-20'
 
 
 class Apps(BetterEnum):
@@ -86,3 +86,6 @@ NOWGATEWAY_SEARCH_FEE_QUANTITY = 0.3
 NOWGATEWAY_SEARCH_FEE_PRO_QUANTITY = 0.28
 
 NOWGATEWAY_BASE_FEE_SLEEP_INTERVAL = 60
+
+NOW_ELASTIC_FETCH_MAX_VALUES_PER_TAG = 100
+NOW_ELASTIC_POST_FIX_FILTERS_TEXT_SEARCH = 'text_search'
