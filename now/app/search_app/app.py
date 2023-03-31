@@ -9,7 +9,6 @@ from now.constants import (
     DEMO_NS,
     EXTERNAL_CLIP_HOST,
     EXTERNAL_SBERT_HOST,
-    NOW_AUTOCOMPLETE_VERSION,
     NOW_ELASTIC_INDEXER_VERSION,
     NOW_PREPROCESSOR_VERSION,
     Apps,
@@ -21,7 +20,6 @@ from now.executor.name_to_id_map import name_to_id_map
 from now.now_dataclasses import UserInput
 
 JINA_LOG_LEVEL = os.environ.get("JINA_LOG_LEVEL", "DEBUG")
-AUTOCOMPLETE_LOG_LEVEL = os.environ.get("AUTOCOMPLETE_LOG_LEVEL", JINA_LOG_LEVEL)
 PREPROCESSOR_LOG_LEVEL = os.environ.get("PREPROCESSOR_LOG_LEVEL", JINA_LOG_LEVEL)
 INDEXER_LOG_LEVEL = os.environ.get("INDEXER_LOG_LEVEL", JINA_LOG_LEVEL)
 
@@ -71,34 +69,10 @@ class SearchApp(JinaNOWApp):
         return False
 
     @staticmethod
-    def autocomplete_stub(testing=False) -> Dict:
-        return {
-            'name': 'autocomplete_executor',
-            'uses': f'jinahub+docker://{name_to_id_map.get("NOWAutoCompleteExecutor2")}/{NOW_AUTOCOMPLETE_VERSION}'
-            if not testing
-            else 'NOWAutoCompleteExecutor2',
-            'needs': 'gateway',
-            'jcloud': {
-                'autoscale': {
-                    'min': 0,
-                    'max': 1,
-                    'metric': 'concurrency',
-                    'target': 1,
-                },
-                'resources': {
-                    'instance': 'C1',
-                    'capacity': 'spot',
-                    'storage': {'kind': 'efs', 'size': '1M'},
-                },
-            },
-            'env': {'JINA_LOG_LEVEL': AUTOCOMPLETE_LOG_LEVEL},
-        }
-
-    @staticmethod
     def preprocessor_stub(testing=False) -> Dict:
         return {
             'name': 'preprocessor',
-            'needs': 'autocomplete_executor',
+            'needs': 'gateway',
             'uses': f'jinahub+docker://{name_to_id_map.get("NOWPreprocessor")}/{NOW_PREPROCESSOR_VERSION}'
             if not testing
             else 'NOWPreprocessor',
@@ -215,7 +189,6 @@ class SearchApp(JinaNOWApp):
         :return: executors stubs with filled-in env vars
         """
         flow_yaml_executors = [
-            self.autocomplete_stub(testing),
             self.preprocessor_stub(testing),
         ]
 

@@ -605,9 +605,7 @@ def decrement_inputs(modality):
 
 
 def clear_match():
-    st.session_state.matches = (
-        None  # TODO move this to when we choose a suggestion or search button
-    )
+    st.session_state.matches = None  # TODO move this to when we choose a search button
     st.session_state.slider = 0.0
     st.session_state.snap = None
     st.session_state.error_msg = None

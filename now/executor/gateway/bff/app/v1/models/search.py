@@ -171,10 +171,6 @@ class SearchResponseModel(BaseModel):
         arbitrary_types_allowed = True
 
 
-class SuggestionRequestModel(BaseRequestModel):
-    text: Optional[str] = Field(default=None, description='Text', example='cute cats')
-
-
 IndexRequestModel.update_forward_refs()
 SearchRequestModel.update_forward_refs()
 SearchResponseModel.update_forward_refs()

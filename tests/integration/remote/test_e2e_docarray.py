@@ -6,7 +6,6 @@ from tests.integration.remote.assertions import (
     assert_deployment_response,
     assert_indexed_all_docs,
     assert_info_endpoints,
-    assert_suggest,
     get_search_request_body,
 )
 
@@ -84,7 +83,6 @@ def test_end_to_end(
         )
         additional_url = f'{response["host_http"]}/api/v1/search-app'
         assert_info_endpoints(additional_url, request_body)
-        assert_suggest(additional_url, request_body)
 
     assert_indexed_all_docs(
         response['host_http'], kwargs=kwargs, limit=MAX_DOCS_FOR_TESTING

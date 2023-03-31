@@ -31,9 +31,7 @@ def call_flow(url_host, data, endpoint):
     )
 
     try:
-        if endpoint == 'suggestion':
-            docs = DocumentArray.from_json(response.content)
-        elif endpoint == 'search':
+        if endpoint == 'search':
             docs = DocumentArray()
             # todo: use multimodal doc in the future
 
@@ -68,7 +66,7 @@ def call_flow(url_host, data, endpoint):
 
     st.session_state.error_msg = None
 
-    if endpoint in ['search', 'suggestion']:
+    if endpoint in ['search']:
         return docs
     else:
         return response.json()
@@ -93,9 +91,7 @@ def multimodal_search(
         'score_calculation': list(st.session_state.score_calculation.values()),
         'get_score_breakdown': st.session_state.show_score_breakdown,
     }
-    if endpoint == 'suggestion':
-        data['text'] = query_field_values_modalities[0]['value']
-    elif endpoint == 'search':
+    if endpoint == 'search':
         data['query'] = query_field_values_modalities
         data['create_temp_link'] = True
         # in case the jwt is none, no jwt will be sent. This is the case when no authentication is used for that flow

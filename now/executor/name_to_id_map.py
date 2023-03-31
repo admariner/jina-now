@@ -2,7 +2,6 @@
 name_to_id_map = {
     'NOWPreprocessor': '2hgojz3z',
     'NOWElasticIndexer': 'mdtuyaaj',
-    'NOWAutoCompleteExecutor2': 'w5w084h7',
     'NOWGateway': '2m00g87k',
 }
 

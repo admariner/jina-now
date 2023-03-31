@@ -4,7 +4,6 @@ import os
 
 import pytest
 import requests
-from docarray import DocumentArray
 
 from now.admin.utils import get_default_request_body
 from now.demo_data import DemoDatasetNames
@@ -120,24 +119,6 @@ def assert_search(search_url, request_body, expected_status_code=200):
     )
     if response.status_code == 200:
         assert len(response.json()) == 9
-
-
-def assert_suggest(additional_url, request_body):
-    old_request_text = request_body.pop('query')
-    request_body['text'] = old_request_text[0]['value']
-    response = requests.post(
-        f'{additional_url}/suggestion',
-        json=request_body,
-    )
-    assert (
-        response.status_code == 200
-    ), f"Received code {response.status_code} with text: {response.json()['message']}"
-    docs = DocumentArray.from_json(response.content)
-    assert 'suggestions' in docs[0].tags, f'No suggestions found in {docs[0].tags}'
-    assert docs[0].tags['suggestions'] == [old_request_text[0]['value']], (
-        f"Expected suggestions to be {old_request_text[0]['value']} but got "
-        f"{docs[0].tags['suggestions']}"
-    )
 
 
 def assert_info_endpoints(additional_url, request_body):

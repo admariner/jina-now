@@ -1,1 +1,0 @@
-Gives suggestions for autocomplete based on previous user queries

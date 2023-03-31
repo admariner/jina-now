@@ -1,7 +1,7 @@
 from collections import defaultdict
 
 from docarray import Document
-from fastapi import APIRouter, Body
+from fastapi import APIRouter
 
 from now.executor.gateway.bff.app.settings import GlobalUserInput
 from now.executor.gateway.bff.app.v1.models.info import (
@@ -10,45 +10,10 @@ from now.executor.gateway.bff.app.v1.models.info import (
     EncoderToDataclassFieldsModsResponseModel,
     FiltersResponseModel,
 )
-from now.executor.gateway.bff.app.v1.models.search import SuggestionRequestModel
 from now.executor.gateway.bff.app.v1.models.shared import BaseRequestModel
 from now.executor.gateway.bff.app.v1.routers.helper import jina_client_post
 
 router = APIRouter()
-
-suggestion_examples = {
-    'working_text': {
-        'summary': 'A working example: get suggestions for a text query',
-        'description': 'A working example which can be tried out. Get autocomplete suggestions for a text query.',
-        'value': {
-            'text': 'cute ca',
-        },
-    },
-    'dummy': {
-        'summary': 'A dummy example',
-        'description': 'A dummy example,  do not run. For parameter reference only.',
-        'value': {
-            'jwt': {'token': '<your token>'},
-            'api_key': '<your api key>',
-            'text': 'cute cats',
-        },
-    },
-}
-
-
-@router.post(
-    '/suggestion',
-    summary='Get auto complete suggestion for query',
-)
-async def suggestion(data: SuggestionRequestModel = Body(examples=suggestion_examples)):
-    suggest_doc = Document(text=data.text)
-    docs = await jina_client_post(
-        endpoint='/suggestion',
-        docs=suggest_doc,
-        request_model=data,
-        target_executor=r'\Aautocomplete_executor\Z',
-    )
-    return docs.to_dict()
 
 
 @router.post(

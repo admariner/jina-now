@@ -4,7 +4,6 @@ import numpy as np
 from docarray import DocumentArray
 from tests.unit.bff.conftest import MockJinaDataRequest
 
-from now.executor.autocomplete import NOWAutoCompleteExecutor2
 from now.executor.gateway.bff.app.v1.routers import helper
 from now.executor.indexer.elastic import NOWElasticIndexer
 from now.executor.preprocessor import NOWPreprocessor
@@ -13,7 +12,6 @@ from now.executor.preprocessor import NOWPreprocessor
 class OfflineFlow:
     def __init__(self, monkeypatch, user_input_dict):
         # definition of executors:
-        self.autocomplete = NOWAutoCompleteExecutor2(user_input_dict=user_input_dict)
         self.preprocessor = NOWPreprocessor(user_input_dict=user_input_dict)
         self.encoder = MockedEncoder()
         document_mappings = [
@@ -42,8 +40,6 @@ class OfflineFlow:
     def post(self, endpoint, inputs, parameters: Dict[str, str], *args, **kwargs):
         # call executors:
         docs = inputs if isinstance(inputs, DocumentArray) else DocumentArray(inputs)
-        if 'search' in endpoint:
-            docs = self.autocomplete.search_update(docs, parameters, *args, **kwargs)
         preprocessed_docs = self.preprocessor.preprocess(
             docs, parameters, *args, **kwargs
         )

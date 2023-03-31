@@ -8,7 +8,6 @@ from jina import Flow
 from now.admin.utils import get_default_request_body
 
 # special imports to make executors visible for flow yaml construction
-from now.executor.autocomplete import NOWAutoCompleteExecutor2  # noqa: F401
 from now.executor.gateway import NOWGateway  # noqa: F401
 from now.executor.indexer.elastic import NOWElasticIndexer  # noqa: F401
 from now.utils.jcloud.helpers import write_flow_file

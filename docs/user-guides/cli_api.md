@@ -58,7 +58,7 @@ response = client.search(
 assert len(response) == 9
 ```
 
-Similarly, you can access the other endpoints such as `/suggestion` and `/list`.
+Similarly, you can access the other endpoints such as `/list`.
 
 ## Use the API
 
