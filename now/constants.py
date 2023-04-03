@@ -4,9 +4,9 @@ from docarray.typing import Image, Text, Video
 
 from now.utils.common.helpers import BetterEnum
 
-NOW_GATEWAY_VERSION = '0.0.6-feat-improve-elastic-filter-20'
-NOW_PREPROCESSOR_VERSION = '0.0.125-fix-gateway-coverage-5'
-NOW_ELASTIC_INDEXER_VERSION = '0.0.149-feat-improve-elastic-filter-20'
+NOW_GATEWAY_VERSION = '0.0.6-feat-weekly-latency-10'
+NOW_PREPROCESSOR_VERSION = '0.0.125-feat-weekly-latency-10'
+NOW_ELASTIC_INDEXER_VERSION = '0.0.149-feat-weekly-latency-10'
 
 
 class Apps(BetterEnum):
@@ -58,6 +58,7 @@ DEFAULT_FLOW_NAME = 'nowapi'
 PREFETCH_NR = 10
 NUM_FOLDERS_THRESHOLD = 100
 MAX_DOCS_FOR_TESTING = 50
+MAX_DOCS_FOR_BENCHMARKING = 50_000
 
 TAG_INDEXER_DOC_HAS_TEXT = '_indexer_doc_has_text'
 ACCESS_PATHS = '@cc'

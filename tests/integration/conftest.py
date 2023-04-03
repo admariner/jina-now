@@ -81,7 +81,9 @@ def get_branch_name_for_flows():
     In case of a local run, returns 'local_setup'.
     """
     # !IMPORTANT! if you modify this function, make sure `delete_flows.py` is adjusted.
-    if 'GITHUB_HEAD_REF' in os.environ:
+    if 'NOW_BENCHMARK_RUN' in os.environ:
+        return 'benchmark'
+    elif 'GITHUB_HEAD_REF' in os.environ:
         return os.environ['GITHUB_HEAD_REF'].lower()[:15] or 'cd-flow'
     return 'local-setup'
 

@@ -3,6 +3,7 @@ from typing import Dict, List, Optional, Tuple, TypeVar
 
 from docarray import DocumentArray
 from jina import __version__ as jina_version
+from jina.logging.logger import JinaLogger
 
 from now.app.base.create_jcloud_name import create_jcloud_name
 from now.app.base.preprocess import preprocess_image, preprocess_text, preprocess_video
@@ -203,11 +204,13 @@ class JinaNOWApp:
     def preprocess(
         self,
         docs: DocumentArray,
+        logger: JinaLogger = None,
     ) -> DocumentArray:
         """Loads and preprocesses every document such that it is ready for indexing."""
+        preprocessed_docs = []
         for doc in docs:
-            for chunk in doc.chunks:
-                try:
+            try:
+                for chunk in doc.chunks:
                     if chunk.modality == 'text':
                         preprocess_text(chunk)
                     elif chunk.modality == 'image':
@@ -216,10 +219,17 @@ class JinaNOWApp:
                         preprocess_video(chunk)
                     else:
                         raise ValueError(f'Unsupported modality {chunk.modality}')
-                except Exception as e:
-                    chunk.summary()
-                    print(e)
-        return docs
+                preprocessed_docs.append(doc)
+            except Exception as e:
+                doc.summary()
+                chunk.summary()
+                message = f'Failed to preprocess URI: {chunk.uri}' if chunk.uri else ''
+                message += f'\nError: {e}'
+                if logger:
+                    logger.info(message)
+                else:
+                    print(message)
+        return DocumentArray(preprocessed_docs)
 
     def is_demo_available(self, user_input) -> bool:
         raise NotImplementedError()
