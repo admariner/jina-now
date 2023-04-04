@@ -11,6 +11,7 @@ from now.executor.gateway.bff.app.v1.models.info import (
 )
 from now.executor.gateway.bff.app.v1.models.shared import BaseRequestModel
 from now.executor.gateway.bff.app.v1.routers.helper import jina_client_post
+from now.executor.gateway.bff.logger import logger
 
 router = APIRouter()
 
@@ -25,7 +26,8 @@ async def get_tags(data: BaseRequestModel) -> FiltersResponseModel:
         endpoint='/filters',
         target_executor=r'\Aindexer\Z',
     )
-    return FiltersResponseModel(filters=response[0].tags['filters'])
+    logger.debug(response[0])
+    return FiltersResponseModel(filters=response[0].tags.get('filters', []))
 
 
 @router.post(

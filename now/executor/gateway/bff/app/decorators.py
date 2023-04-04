@@ -6,9 +6,8 @@ from functools import wraps
 from typing import Callable
 
 from fastapi import HTTPException
-from jina.logging.logger import JinaLogger
 
-logger = JinaLogger('bff.app')
+from now.executor.gateway.bff.logger import logger
 
 
 @contextmanager
@@ -55,7 +54,6 @@ def api_method(func: Callable):
     @wraps(func)
     def surround(*args, **kwargs):
         func_name = inspect.getmodule(func).__name__ + f':{func.__name__}'
-        logger.info(f'--- Calling api method {func_name} ...')
         try:
             response = func(*args, **kwargs)
         except HTTPException as exc:

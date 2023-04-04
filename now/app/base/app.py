@@ -169,7 +169,7 @@ class JinaNOWApp:
             'jtype': 'Flow',
             'with': {
                 'name': 'nowapi',
-                'env': {'JINA_LOG_LEVEL': 'DEBUG'},
+                'env': {'JINA_LOG_LEVEL': JINA_LOG_LEVEL},
             },
             'jcloud': {
                 'version': jina_version,

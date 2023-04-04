@@ -36,6 +36,8 @@ from now.now_dataclasses import UserInput
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
+from now.executor.gateway.playground.logger import logger
+
 # HEADER
 st.set_page_config(page_title='NOW', page_icon='https://jina.ai/favicon.ico')
 profanity.load_censor_words()
@@ -97,6 +99,7 @@ def deploy_streamlit(user_input: UserInput):
     # Start with setting up the vars default values then proceed to placing UI components
     # Set up session state vars if not already set
     setup_session_state()
+    logger.info("*** Deploying streamlit ***")
 
     # Retrieve query params
     params = get_query_params()
