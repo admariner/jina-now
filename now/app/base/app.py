@@ -1,4 +1,5 @@
 import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Dict, List, Optional, Tuple, TypeVar
 
 from docarray import DocumentArray
@@ -6,7 +7,7 @@ from jina import __version__ as jina_version
 from jina.logging.logger import JinaLogger
 
 from now.app.base.create_jcloud_name import create_jcloud_name
-from now.app.base.preprocess import preprocess_image, preprocess_text, preprocess_video
+from now.app.base.preprocess import preprocess
 from now.constants import DEMO_NS, NOW_GATEWAY_VERSION
 from now.demo_data import DemoDataset
 from now.executor.name_to_id_map import name_to_id_map
@@ -204,31 +205,25 @@ class JinaNOWApp:
     def preprocess(
         self,
         docs: DocumentArray,
+        max_workers: int = 1,
         logger: JinaLogger = None,
     ) -> DocumentArray:
         """Loads and preprocesses every document such that it is ready for indexing."""
         preprocessed_docs = []
-        for doc in docs:
-            try:
-                for chunk in doc.chunks:
-                    if chunk.modality == 'text':
-                        preprocess_text(chunk)
-                    elif chunk.modality == 'image':
-                        preprocess_image(chunk)
-                    elif chunk.modality == 'video':
-                        preprocess_video(chunk)
-                    else:
-                        raise ValueError(f'Unsupported modality {chunk.modality}')
-                preprocessed_docs.append(doc)
-            except Exception as e:
-                doc.summary()
-                chunk.summary()
-                message = f'Failed to preprocess URI: {chunk.uri}' if chunk.uri else ''
-                message += f'\nError: {e}'
-                if logger:
-                    logger.info(message)
-                else:
-                    print(message)
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = []
+            for doc in docs:
+                futures.append(
+                    executor.submit(
+                        preprocess,
+                        doc,
+                        logger,
+                    )
+                )
+            for future in as_completed(futures):
+                result = future.result()
+                if result is not None:
+                    preprocessed_docs.append(result)
         return DocumentArray(preprocessed_docs)
 
     def is_demo_available(self, user_input) -> bool:

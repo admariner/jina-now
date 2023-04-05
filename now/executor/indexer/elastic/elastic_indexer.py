@@ -188,7 +188,7 @@ class NOWElasticIndexer(Executor):
             docs_map = self._handle_no_docs_map(docs)
             if len(docs_map) == 0:
                 return DocumentArray()
-        aggregate_embeddings(docs_map)
+        lift_chunk_chunks_to_chunks(docs_map)
         es_docs = convert_doc_map_to_es(
             docs_map, self.index_name, self.encoder_to_fields
         )
@@ -234,7 +234,7 @@ class NOWElasticIndexer(Executor):
             docs_map = self._handle_no_docs_map(docs)
             if len(docs_map) == 0:
                 return DocumentArray()
-        aggregate_embeddings(docs_map)
+        lift_chunk_chunks_to_chunks(docs_map)
 
         filter = parameters.get('filter', {})
         limit = parameters.get('limit', self.limit)
@@ -494,9 +494,8 @@ class NOWElasticIndexer(Executor):
             self.logger.info(traceback.format_exc())
 
 
-def aggregate_embeddings(docs_map: Dict[str, DocumentArray]):
-    """Aggregate embeddings of cc level to c level.
-
+def lift_chunk_chunks_to_chunks(docs_map: Dict[str, DocumentArray]):
+    """Aggregate embeddings of cc level to c level and lifts either uri or content to c level.
     :param docs_map: a dictionary of `DocumentArray`s, where the key is the embedding space aka encoder name.
     """
     for docs in docs_map.values():
@@ -504,6 +503,8 @@ def aggregate_embeddings(docs_map: Dict[str, DocumentArray]):
             for c in doc.chunks:
                 if c.chunks.embeddings is not None:
                     c.embedding = c.chunks.embeddings.mean(axis=0)
-                if c.chunks[0].text or not c.uri:
+                if c.chunks[0].uri:
+                    c.uri = c.chunks[0].uri
+                else:
                     c.content = c.chunks[0].content
                 c.chunks = DocumentArray()

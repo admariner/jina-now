@@ -4,7 +4,7 @@ import numpy as np
 from docarray import Document
 from docarray.score import NamedScore
 
-from now.executor.indexer.elastic.elastic_indexer import aggregate_embeddings
+from now.executor.indexer.elastic.elastic_indexer import lift_chunk_chunks_to_chunks
 from now.executor.indexer.elastic.es_converter import (
     calculate_score_breakdown,
     convert_doc_map_to_es,
@@ -26,7 +26,7 @@ def test_convert_doc_map_to_es(es_inputs, random_index_name):
     document_mappings = document_mappings[0]
     encoder_to_fields = {document_mappings[0]: document_mappings[2]}
     first_doc_clip = index_docs_map['clip'][0]
-    aggregate_embeddings(index_docs_map)
+    lift_chunk_chunks_to_chunks(index_docs_map)
     index_name = os.getenv('ES_INDEX_NAME')
     first_result = convert_doc_map_to_es(
         docs_map=index_docs_map,

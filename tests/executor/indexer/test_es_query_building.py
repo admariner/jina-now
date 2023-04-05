@@ -1,6 +1,6 @@
 import pytest
 
-from now.executor.indexer.elastic.elastic_indexer import aggregate_embeddings
+from now.executor.indexer.elastic.elastic_indexer import lift_chunk_chunks_to_chunks
 from now.executor.indexer.elastic.es_query_building import (
     build_es_queries,
     generate_score_calculation,
@@ -45,7 +45,7 @@ def test_build_es_queries_default(es_inputs):
         default_score_calculation,
         _,
     ) = es_inputs
-    aggregate_embeddings(query_docs_map)
+    lift_chunk_chunks_to_chunks(query_docs_map)
     _, es_query = build_es_queries(
         docs_map=query_docs_map,
         get_score_breakdown=False,
@@ -82,7 +82,7 @@ def test_build_es_queries_filters(es_inputs):
         default_score_calculation,
         _,
     ) = es_inputs
-    aggregate_embeddings(query_docs_map)
+    lift_chunk_chunks_to_chunks(query_docs_map)
 
     # test adding categorical filters
     filters = {'tags__color': ['red', 'blue']}

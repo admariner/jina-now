@@ -33,6 +33,10 @@ class NOWPreprocessor(Executor):
         self.app: JinaNOWApp = JinaNOWApp()
         self.max_workers = max_workers
 
+        import nltk
+
+        nltk.download('punkt', quiet=True)
+
     @secure_request(on=None, level=SecurityLevel.USER)
     def preprocess(self, docs: DocumentArray, *args, **kwargs) -> DocumentArray:
         """If necessary downloads data from cloud bucket. Applies preprocessing to document as defined by apps.
@@ -67,7 +71,7 @@ class NOWPreprocessor(Executor):
                     max_workers=self.max_workers,
                 )
 
-            docs = self.app.preprocess(docs, self.logger)
+            docs = self.app.preprocess(docs, self.max_workers, self.logger)
 
             # As _maybe_download_from_s3 moves S3 URI to tags['uri'], need to move it back for post-processor & accurate
             # results.

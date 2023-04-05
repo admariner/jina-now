@@ -1,5 +1,6 @@
 import json
 import os
+import time
 from functools import lru_cache
 from typing import Dict, List
 
@@ -69,14 +70,18 @@ def secure_request(level: int, on: str = None):
                 ]
                 cls_instance.logger.info(f"lengths: {', '.join(lengths)}")
 
+            t0 = time.time()
             res = func(*args, **kwargs)
+            t1 = time.time()
 
             if isinstance(res, DocumentArray):
-                cls_instance.logger.info(f"output {len(res)} docs")
+                cls_instance.logger.info(
+                    f"output {len(res)} docs in {(t1 - t0) * 1000:.1f}ms"
+                )
                 if len(res) and cls_instance.logger.logger.level <= LogVerbosity.DEBUG:
                     res[0].summary()
             elif not res:
-                cls_instance.logger.info(f"no output")
+                cls_instance.logger.info(f"no output in {(t1 - t0) * 1000:.1f}ms")
 
             return res
 
