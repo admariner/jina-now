@@ -3,6 +3,8 @@ import asyncio
 from jcloud.flow import CloudFlow
 from tests.integration.conftest import get_branch_name_for_flows
 
+phases = 'Serving,Failed,Pending,Starting,Updating,Paused'
+
 
 def create_eventloop():
     loop = asyncio.new_event_loop()
@@ -22,7 +24,7 @@ def delete_ci_flows():
     branch_name = get_branch_name_for_flows()
     if branch_name != 'local-setup':
         loop = create_eventloop()
-        jflows = loop.run_until_complete(CloudFlow().list_all())['flows']
+        jflows = loop.run_until_complete(CloudFlow().list_all(phase=phases))['flows']
         for flow in jflows:
             if flow['status']['phase'] != 'Deleted' and branch_name in flow['id']:
                 CloudFlow(flow_id=flow['id']).__exit__()
