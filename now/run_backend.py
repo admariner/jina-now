@@ -1,4 +1,3 @@
-import random
 import sys
 import uuid
 from copy import deepcopy
@@ -126,6 +125,7 @@ def call_flow(
 ):
     request_size = estimate_request_size(dataset, max_request_size)
 
+    # Refer to https://docs.jina.ai/concepts/client/transient-errors/ for more details on parameters
     response = client.post(
         on=endpoint,
         request_size=request_size,
@@ -134,6 +134,10 @@ def call_flow(
         parameters=parameters,
         continue_on_error=True,
         prefetch=100,
+        max_attempts=10,  # max retries for a single request
+        inital_backoff=2,  # start off with higher value, 5 seconds
+        max_backoff=30,  # max backoff of 30 seconds
+        backoff_multiplier=1.5,  # exponential increase in backoff
         on_done=kwargs.get('on_done', None),
         on_error=kwargs.get('on_error', None),
         on_always=kwargs.get('on_always', None),
@@ -144,11 +148,14 @@ def call_flow(
 
 
 def estimate_request_size(index, max_request_size):
-    if len(index) > 30:
-        sample = random.sample(index, 30)
-    else:
-        sample = index
-    size = sum([sys.getsizeof(x.content) for x in sample]) / 30
-    max_size = 50_000
+    if len(index) == 0:
+        return 1
+
+    # We assume that it is homogeneous multimodal DocumentArray,
+    # therefore pick the first document to estimate the size in bytes
+    size = sys.getsizeof(index[0].content) + sum(
+        [sys.getsizeof(chunk.content) for chunk in index[0].chunks]
+    )
+    max_size = 5e5  # 0.5 MB
     request_size = max(min(max_request_size, int(max_size / size)), 1)
     return request_size

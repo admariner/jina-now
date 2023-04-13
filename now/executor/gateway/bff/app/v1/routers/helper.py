@@ -77,10 +77,11 @@ def field_dict_to_mm_doc(
         except BaseException as e:
             import traceback
 
-            traceback.format_exc()
+            traceback.print_exc()
             raise HTTPException(
                 status_code=500,
-                detail=f'Not a correctly encoded request. Please see the error stack for more information. \n{traceback.format_exc()}',
+                detail=f'Not a correctly encoded request. '
+                f'Please see the error stack for more information. \n{traceback.format_exc()}',
             )
 
     return doc

@@ -185,7 +185,7 @@ def render_filters(params):
             st.session_state.tags = tags
         except Exception:  # noqa
             print("Filters couldn't be loaded from the endpoint properly.")
-            traceback.format_exc()
+            traceback.print_exc()
 
     if st.session_state.tags:
         st.sidebar.title('Filters')

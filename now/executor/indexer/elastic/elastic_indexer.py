@@ -123,7 +123,7 @@ class NOWElasticIndexer(Executor):
             try:
                 self.es.cluster.health(wait_for_status='yellow')
                 break
-            except Exception:
+            except Exception:  # noqa
                 self.logger.info(traceback.format_exc())
 
     def generate_es_mapping(self) -> Dict:
@@ -334,7 +334,7 @@ class NOWElasticIndexer(Executor):
             result = self.es.search(
                 index=self.index_name, size=limit, from_=offset, query={'match_all': {}}
             )['hits']['hits']
-        except Exception:
+        except Exception:  # noqa
             result = None
             self.logger.info(traceback.format_exc())
         if result:
@@ -348,7 +348,7 @@ class NOWElasticIndexer(Executor):
         num_docs = 0
         try:
             num_docs = self.es.count(index=self.index_name)['count']
-        except Exception:
+        except Exception:  # noqa
             self.logger.error(traceback.format_exc())
         return DocumentArray([Document(tags={'count': num_docs})])
 

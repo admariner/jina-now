@@ -122,6 +122,7 @@ class JinaNOWApp:
             'cors': True,
             'uses_with': {'user_input_dict': user_input.to_safe_dict()},
             'env': {'JINA_LOG_LEVEL': GATEWAY_LOG_LEVEL},
+            'timeout_send': 1000 * 180,
             'jcloud': {
                 'labels': {
                     'app': 'gateway',

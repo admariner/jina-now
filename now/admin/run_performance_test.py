@@ -16,7 +16,7 @@ def call(client, use_bff):
 
     try:
         send_fn(endpoint=end_point, text='girl on a motorbike', limit=60)
-    except Exception as e:
+    except Exception as e:  # noqa
         import traceback
 
         traceback.print_exc()
