@@ -7,9 +7,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.applications import Starlette
 from starlette.responses import JSONResponse
-from starlette.routing import Mount
 
-import now.executor.gateway.bff.app.settings as api_settings
 from now import __version__
 from now.executor.gateway.bff.app.decorators import api_method, timed
 from now.executor.gateway.bff.app.v1.routers.app import extras_router, search_app_router
@@ -62,12 +60,6 @@ def get_app_instance():
             'Check out /docs or /redoc for the full API documentation!'
         )
 
-    @app.on_event('startup')
-    def startup():
-        logger.info(
-            f'Jina NOW started! ' f'Listening to [::]:{api_settings.DEFAULT_PORT}'
-        )
-
     @app.exception_handler(Exception)
     async def unicorn_exception_handler(request: Request, exc: Exception):
         import traceback
@@ -94,13 +86,23 @@ def build_app():
     admin_app = get_app_instance()
     admin_app.include_router(extras_router)
 
+    sub_apps = {admin_mount: admin_app, search_app_mount: search_app_app}
+
     # Mount them - for other modalities just add an app instance
-    app = Starlette(
-        routes=[
-            Mount(search_app_mount, search_app_app),
-            Mount(admin_mount, admin_app),
-        ]
-    )
+    app = Starlette()
+    for route, sub_app in sub_apps.items():
+        app.mount(route, sub_app)
+
+    # startup event can only be fired for the parent app due to the lifecycle of the apps.
+    # In order to add some code for mounted (or sub) apps to be executed on the startup
+    # event, below is the hack
+
+    @app.on_event('startup')
+    def startup():
+        for sub_app in sub_apps.values():
+            logger.info(f'Jina NOW sub-app {sub_app} started! ')
+            # add here app-specific startup code
+
     return app
 
 
