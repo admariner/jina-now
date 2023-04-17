@@ -541,7 +541,7 @@ def list_files_from_s3_bucket(
     with context_manager(
         sigmap=sigmap, text="Listing files from S3 bucket ...", color="green"
     ) as spinner:
-        file_paths = _list_s3_file_paths(bucket, folder_prefix)
+        file_paths = _list_s3_file_paths(bucket, folder_prefix, top_n)
         spinner.ok('🏭')
 
     if top_n:
