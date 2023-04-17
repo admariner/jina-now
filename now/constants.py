@@ -4,9 +4,9 @@ from docarray.typing import Image, Text, Video
 
 from now.utils.common.helpers import BetterEnum
 
-NOW_GATEWAY_VERSION = '0.0.6-fix-bff-startup-10'
-NOW_PREPROCESSOR_VERSION = '0.0.125-fix-bff-startup-10'
-NOW_ELASTIC_INDEXER_VERSION = '0.0.149-fix-bff-startup-10'
+NOW_GATEWAY_VERSION = '0.0.6-fix-s3-file-param-3'
+NOW_PREPROCESSOR_VERSION = '0.0.125-fix-s3-file-param-3'
+NOW_ELASTIC_INDEXER_VERSION = '0.0.149-fix-s3-file-param-3'
 
 
 class Apps(BetterEnum):

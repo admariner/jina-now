@@ -1,6 +1,17 @@
 import signal
 import sys
 from collections.abc import MutableMapping
+from contextlib import contextmanager
+
+
+class YaspinWrapper:
+    def ok(self, *args, **kwargs):
+        pass
+
+
+@contextmanager
+def null_context(*args, **kwargs):
+    yield YaspinWrapper()
 
 
 def flatten_dict(d, parent_key='', sep='__'):

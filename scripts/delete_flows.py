@@ -20,7 +20,7 @@ def delete_ci_flows():
     Since flow names include the branch name, we just iterate over all flows
     and look for those who have the current branch name inside their name, and delete only those.
     """
-    print('Deleting the flows that were created during this CI run')
+    print('Deleting the flows that were created during this CI run...')
     branch_name = get_branch_name_for_flows()
     if branch_name != 'local-setup':
         loop = create_eventloop()

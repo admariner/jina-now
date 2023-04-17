@@ -206,7 +206,6 @@ jobs:
           flags: ${{ steps.test.outputs.codecov_flag }}
           fail_ci_if_error: false
 
-
   # Clean up flows created during the current CI run if there are any left
   cleanup-flows:
     runs-on: ubuntu-latest

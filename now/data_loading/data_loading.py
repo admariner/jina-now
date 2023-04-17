@@ -1,7 +1,9 @@
+import base64
 import json
 import os
-from collections import defaultdict
-from typing import Dict, List, Type
+import tempfile
+from collections import Counter, defaultdict
+from typing import Dict, List, Tuple, Type, Union
 
 from docarray import Document, DocumentArray
 from docarray.dataclasses import is_multimodal
@@ -13,9 +15,10 @@ from now.common.detect_schema import (
 from now.constants import MAX_DOCS_FOR_BENCHMARKING, MAX_DOCS_FOR_TESTING, DatasetTypes
 from now.data_loading.create_dataclass import create_dataclass
 from now.data_loading.elasticsearch import ElasticsearchExtractor
+from now.executor.preprocessor.s3_download import download_from_bucket
 from now.log import yaspin_extended
 from now.now_dataclasses import UserInput
-from now.utils.common.helpers import flatten_dict, sigmap
+from now.utils.common.helpers import flatten_dict, null_context, sigmap
 from now.utils.docarray.helpers import get_chunk_by_field_name
 
 
@@ -46,7 +49,7 @@ def load_data(user_input: UserInput, print_callback=print) -> DocumentArray:
         da = _load_from_disk(user_input=user_input, data_class=data_class)
     elif user_input.dataset_type == DatasetTypes.S3_BUCKET:
         print_callback('🗄  Loading files from S3')
-        da = _list_files_from_s3_bucket(user_input=user_input, data_class=data_class)
+        da = list_files_from_s3_bucket(user_input=user_input, data_class=data_class)
     elif user_input.dataset_type == DatasetTypes.ELASTICSEARCH:
         print_callback('🔍  Loading data from Elasticsearch')
         da = _extract_es_data(user_input=user_input, data_class=data_class)
@@ -202,7 +205,7 @@ def from_files_local(
     field_names_to_dataclass_fields: Dict,
     data_class: Type,
 ) -> DocumentArray:
-    """Creates a Multi Modal documentarray over a list of file path or the content of the files.
+    """Creates a Multi Modal DocumentArray over a list of file path or the content of the files.
 
     :param path: The path to the directory
     :param fields: The fields to search for in the directory
@@ -221,11 +224,11 @@ def from_files_local(
     current_level = folder_generator.__next__()
     folder_structure = 'sub_folders' if len(current_level[1]) > 0 else 'single_folder'
     if folder_structure == 'sub_folders':
-        docs = create_docs_from_subdirectories(
+        docs, _ = create_docs_from_subdirectories(
             file_paths, fields, field_names_to_dataclass_fields, data_class
         )
     else:
-        docs = create_docs_from_files(
+        docs, _ = create_docs_from_files(
             file_paths, fields, field_names_to_dataclass_fields, data_class
         )
     return DocumentArray(docs)
@@ -238,9 +241,11 @@ def create_docs_from_subdirectories(
     data_class: Type,
     path: str = None,
     is_s3_dataset: bool = False,
-) -> List[Document]:
+    download_content: bool = False,
+    bucket=None,
+) -> Tuple[List[Document], Dict[str, dict]]:
     """
-    Creates a Multi Modal documentarray over a list of subdirectories.
+    Creates a Multi Modal DocumentArray over a list of subdirectories.
 
     :param file_paths: The list of file paths
     :param fields: The fields to search for in the directory
@@ -248,12 +253,18 @@ def create_docs_from_subdirectories(
     :param data_class: The dataclass to use for the document
     :param path: The path to the directory
     :param is_s3_dataset: Whether the dataset is stored on s3
+    :param download_content: Whether to download the content of the s3 files
+    :param bucket: The s3 bucket instance
 
     :return: The list of documents
     """
 
     docs = []
+    non_json_file_info = []
+    json_file_info = []
     folder_files = defaultdict(list)
+    folder_files_content = defaultdict(dict)
+    # Group the files by the folder they are in
     for file in file_paths:
         path_to_last_folder = (
             '/'.join(file.split('/')[:-1])
@@ -261,6 +272,8 @@ def create_docs_from_subdirectories(
             else os.sep.join(file.split(os.sep)[:-1])
         )
         folder_files[path_to_last_folder].append(file)
+
+    # Process each files in each folder
     for folder, files in folder_files.items():
         kwargs = {}
         tags_loaded_local = {}
@@ -269,33 +282,46 @@ def create_docs_from_subdirectories(
             _extract_file_and_full_file_path(file, path, is_s3_dataset)
             for file in files
         ]
-        # first store index fields given as files
-        for file, file_full_path in file_info:
+
+        if download_content:
+            for file_name, file_full_path in file_info:
+                content = get_file_content(bucket, file_full_path, is_s3_dataset)
+                folder_files_content[folder.split('/')[-1]][file_name] = content
+
+        for f_name, f_path in file_info:
+            if f_name.endswith('.json'):
+                json_file_info.append((f_name, f_path))
+            else:
+                non_json_file_info.append((f_name, f_path))
+
+        # first store index fields given as non json files
+        for file, file_full_path in non_json_file_info:
             if file in fields:
                 kwargs[field_names_to_dataclass_fields[file]] = file_full_path
+
         # next check json files that can also contain index fields, and carry on data
-        for file, file_full_path in file_info:
-            if file.endswith('.json'):
-                if is_s3_dataset:
-                    _s3_uri_for_tags = file_full_path
-                    for field in data_class.__annotations__.keys():
-                        if field not in kwargs.keys():
-                            kwargs[field] = file_full_path
-                else:
-                    with open(file_full_path) as f:
-                        json_data = flatten_dict(json.load(f))
-                    for field, value in json_data.items():
-                        if field in fields:
-                            kwargs[field_names_to_dataclass_fields[field]] = value
-                        else:
-                            tags_loaded_local[field] = value
+        for file, file_full_path in json_file_info:
+            if is_s3_dataset:  # s3 data source
+                _s3_uri_for_tags = file_full_path
+                for field in data_class.__annotations__.keys():
+                    if field not in kwargs.keys():
+                        kwargs[field] = file_full_path
+            else:  # local data source
+                with open(file_full_path) as f:
+                    json_data = flatten_dict(json.load(f))
+                for field, value in json_data.items():
+                    if field in fields:
+                        kwargs[field_names_to_dataclass_fields[field]] = value
+                    else:
+                        tags_loaded_local[field] = value
         doc = Document(data_class(**kwargs))
         if _s3_uri_for_tags:
             doc._metadata['_s3_uri_for_tags'] = _s3_uri_for_tags
         elif tags_loaded_local:
             doc.tags.update(tags_loaded_local)
         docs.append(doc)
-    return docs
+
+    return docs, folder_files_content
 
 
 def create_docs_from_files(
@@ -305,9 +331,11 @@ def create_docs_from_files(
     data_class: Type,
     path: str = None,
     is_s3_dataset: bool = False,
-) -> List[Document]:
+    download_content: bool = False,
+    bucket=None,
+) -> Tuple[List[Document], Dict[str, dict]]:
     """
-    Creates a Multi Modal documentarray over a list of files.
+    Creates a Multi Modal DocumentArray over a list of files.
 
     :param file_paths: List of file paths
     :param fields: The fields to search for in the directory
@@ -315,25 +343,32 @@ def create_docs_from_files(
     :param data_class: The dataclass to use for the document
     :param path: The path to the directory
     :param is_s3_dataset: Whether the dataset is stored on s3
+    :param download_content: Whether to download the content of the files and return as base64 encoded bytes
+    :param bucket: The s3 bucket instance
 
     :return: A list of documents
     """
     docs = []
+    folder_content = defaultdict()
     for file in file_paths:
         kwargs = {}
         file, file_full_path = _extract_file_and_full_file_path(
             file, path, is_s3_dataset
         )
+        if download_content:
+            folder_content[file] = get_file_content(
+                bucket, file_full_path, is_s3_dataset
+            )
         file_extension = file.split('.')[-1]
         if (
             file_extension == fields[0].split('.')[-1]
         ):  # fields should have only one index field in case of files only
             kwargs[field_names_to_dataclass_fields[fields[0]]] = file_full_path
             docs.append(Document(data_class(**kwargs)))
-    return docs
+    return docs, folder_content
 
 
-def _list_s3_file_paths(bucket, folder_prefix):
+def _list_s3_file_paths(bucket, folder_prefix, top_n=None):
     """
     Lists the s3 file paths in an optimized way by finding the best level to use concurrent calls on
     in the file structure, using a threadpool.
@@ -411,7 +446,10 @@ def _list_s3_file_paths(bucket, folder_prefix):
     #             objects += f.result()
     # else:
     #     objects = list(bucket.objects.filter(Prefix=folder_prefix))
-    objects = list(bucket.objects.filter(Prefix=folder_prefix))
+    if top_n:
+        objects = list(bucket.objects.filter(Prefix=folder_prefix).limit(top_n))
+    else:
+        objects = list(bucket.objects.filter(Prefix=folder_prefix))
     return [
         obj.key
         for obj in objects
@@ -419,51 +457,125 @@ def _list_s3_file_paths(bucket, folder_prefix):
     ]
 
 
-def _list_files_from_s3_bucket(
-    user_input: UserInput, data_class: Type
-) -> DocumentArray:
+def validate_shrink_data(file_paths):
     """
-    Loads the data from s3 into multimodal documents.
+    Validates the file paths: Keeps only consistent folders based on the number of files inside them.
+
+    :param file_paths: The initial file paths.
+
+    :return: The file paths to keep.
+    """
+    dict_fp = defaultdict(int)
+    # take the folders of the files
+    for file_path in file_paths:
+        dict_fp['/'.join(file_path.split('/')[:-1])] += 1
+
+    # remove the keys that don't have the same length as the majority
+    val_counts = Counter(dict_fp.values())
+    max_occ = max(list(val_counts.values()))
+    max_common_element = 0
+    for key, value in val_counts.items():
+        if value == max_occ:
+            max_common_element = max(max_common_element, key)
+    keys_to_remove = []
+    for key, val in dict_fp.items():
+        if val != max_common_element:
+            keys_to_remove.append(key)
+
+    # keep only the desired file paths
+    files_to_keep = []
+    for file_path in file_paths:
+        keep = True
+        for key in keys_to_remove:
+            if file_path.startswith(key):
+                keep = False
+                break
+        if keep:
+            files_to_keep.append(file_path)
+
+    return files_to_keep
+
+
+def get_file_content(bucket, uri, is_s3_uri=True):
+    if is_s3_uri:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            local_file = download_from_bucket(tmpdir, uri, bucket)
+
+            with open(local_file, 'rb') as file:
+                content = base64.b64encode(file.read())
+    else:
+        with open(uri, 'rb') as file:
+            content = file.read()
+
+    return content
+
+
+def list_files_from_s3_bucket(
+    user_input: UserInput,
+    data_class: Type,
+    top_n: int = None,
+    verbose=True,
+    return_file_content=False,
+) -> Union[DocumentArray, Tuple[DocumentArray, Dict[str, dict]]]:
+    """
+    Loads the data from s3 into multimodal documents. It also supports additional params to return the contents
+    of the files.
 
     :param user_input: The user input object.
     :param data_class: The dataclass to use for the DocumentArray.
+    :param top_n: The number of files to pull, if set to None pull all files.
+                    top_n is only set when calling from JAC
+    :param verbose: If set to True, will print the progress bar.
+    :param return_file_content: If set to True, will return all the file content in base64 encoded bytes.
 
     :return: The DocumentArray with the documents.
     """
+    context_manager = yaspin_extended if verbose else null_context
     bucket, folder_prefix = get_s3_bucket_and_folder_prefix(user_input)
     first_file = get_first_file_in_folder_structure_s3(bucket, folder_prefix)
     structure_identifier = first_file[len(folder_prefix) :].split('/')
     folder_structure = (
         'sub_folders' if len(structure_identifier) > 1 else 'single_folder'
     )
-    with yaspin_extended(
+
+    with context_manager(
         sigmap=sigmap, text="Listing files from S3 bucket ...", color="green"
     ) as spinner:
         file_paths = _list_s3_file_paths(bucket, folder_prefix)
         spinner.ok('🏭')
 
-    with yaspin_extended(
+    if top_n:
+        file_paths = validate_shrink_data(file_paths)
+
+    with context_manager(
         sigmap=sigmap, text="Creating docarray from S3 bucket files ...", color="green"
     ) as spinner:
         if folder_structure == 'sub_folders':
-            docs = create_docs_from_subdirectories(
+            docs, content = create_docs_from_subdirectories(
                 file_paths,
                 user_input.index_fields,
                 user_input.field_names_to_dataclass_fields,
                 data_class,
                 user_input.dataset_path,
                 is_s3_dataset=True,
+                bucket=bucket,
+                download_content=return_file_content,
             )
         else:
-            docs = create_docs_from_files(
+            docs, content = create_docs_from_files(
                 file_paths,
                 user_input.index_fields,
                 user_input.field_names_to_dataclass_fields,
                 data_class,
                 user_input.dataset_path,
                 is_s3_dataset=True,
+                bucket=bucket,
+                download_content=return_file_content,
             )
         spinner.ok('👝')
+
+    if return_file_content:
+        return DocumentArray(docs), content
     return DocumentArray(docs)
 
 

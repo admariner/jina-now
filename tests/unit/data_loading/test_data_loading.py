@@ -16,9 +16,10 @@ from now.data_loading.create_dataclass import (
     update_dict_with_no_overwrite,
 )
 from now.data_loading.data_loading import (
-    _list_files_from_s3_bucket,
     from_files_local,
+    list_files_from_s3_bucket,
     load_data,
+    validate_shrink_data,
 )
 from now.demo_data import AVAILABLE_DATASETS, DemoDatasetNames
 from now.now_dataclasses import UserInput
@@ -52,6 +53,28 @@ def is_da_text_equal(da_a: DocumentArray, da_b: DocumentArray):
         if a.text != b.text:
             return False
     return True
+
+
+def test_validate_shrink_data():
+    temp_file_paths = [
+        "folder1/file1.png",
+        "folder1/file2.json",
+        "folder2/file3.png",
+        "folder3/file4.png",
+        "folder3/file5.json",
+        "folder4/file6.txt",
+    ]
+
+    expected_output = [
+        "folder1/file1.png",
+        "folder1/file2.json",
+        "folder3/file4.png",
+        "folder3/file5.json",
+    ]
+
+    actual_output = validate_shrink_data(temp_file_paths)
+
+    assert actual_output == expected_output
 
 
 def test_da_local_path(local_da: Tuple[str, DocumentArray]):
@@ -133,7 +156,8 @@ def test_from_files_local(resources_folder_path):
         assert doc.chunks[0].uri
 
 
-def test_from_subfolders_s3(get_aws_info):
+@pytest.mark.parametrize('return_content', [True])
+def test_from_sub_folders_s3(get_aws_info, return_content):
     user_input = UserInput()
     (
         user_input.dataset_path,
@@ -163,7 +187,15 @@ def test_from_subfolders_s3(get_aws_info):
         user_input=user_input
     )
 
-    loaded_da = _list_files_from_s3_bucket(user_input, data_class)
+    loaded_da = list_files_from_s3_bucket(
+        user_input, data_class, return_file_content=return_content
+    )
+    if return_content:
+        loaded_da, content = loaded_da
+        assert content is not None
+        assert isinstance(content, dict)
+        assert len(content) == 10
+
     assert len(loaded_da) == 10
     for doc in loaded_da:
         assert doc.chunks[0].uri
