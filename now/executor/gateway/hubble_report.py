@@ -90,7 +90,17 @@ def report(quantity_basic, quantity_pro, auth_jwt=None):
         else:
             quantity = quantity_pro
         if can_charge(summary):
-            payment_client.report_usage(authorized_jwt, app_id, product_id, quantity)  # type: ignore
+            payment_client.report_usage(
+                authorized_jwt,
+                app_id,
+                product_id,
+                quantity,
+                meta={
+                    'appId': 'search-app',
+                    'feeType': 'search-fee',
+                    'source': 'gateway',
+                },
+            )
             logger.info(f'**** `{round(quantity, 3)}` credits charged ****')
             summary = get_summary(auth_jwt=authorized_jwt)
             logger.info(f'Credits after: {summary["credits"]}')
