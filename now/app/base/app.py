@@ -118,7 +118,6 @@ class JinaNOWApp:
             else 'NOWGateway',
             'protocol': ['http'],
             'port': [8081],
-            'monitoring': True,
             'cors': True,
             'uses_with': {'user_input_dict': user_input.to_safe_dict()},
             'env': {'JINA_LOG_LEVEL': GATEWAY_LOG_LEVEL},
@@ -171,6 +170,7 @@ class JinaNOWApp:
             'jtype': 'Flow',
             'with': {
                 'name': 'nowapi',
+                'monitoring': True,
                 'env': {'JINA_LOG_LEVEL': GATEWAY_LOG_LEVEL},
             },
             'jcloud': {

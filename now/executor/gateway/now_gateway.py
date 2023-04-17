@@ -6,10 +6,10 @@ from typing import Dict, List, Tuple
 
 import streamlit.web.bootstrap
 from jina import Gateway
-from jina.enums import GatewayProtocolType
-from jina.serve.runtimes.gateway import CompositeGateway
+from jina.enums import ProtocolType
+from jina.serve.runtimes.gateway.composite import CompositeGateway
 from jina.serve.runtimes.gateway.http.fastapi import FastAPIBaseGateway
-from jina.serve.runtimes.gateway.http.models import JinaHealthModel
+from jina.serve.runtimes.gateway.models import JinaHealthModel
 from streamlit.file_util import get_streamlit_file_path
 from streamlit.web.server import Server as StreamlitServer
 
@@ -80,7 +80,7 @@ class NOWGateway(CompositeGateway):
 
     def __init__(self, user_input_dict: Dict = {}, **kwargs):
         # need to update port ot 8082, as nginx will listen on 8081
-        http_idx = kwargs['runtime_args']['protocol'].index(GatewayProtocolType.HTTP)
+        http_idx = kwargs['runtime_args']['protocol'].index(ProtocolType.HTTP)
         http_port = kwargs['runtime_args']['port'][http_idx]
         if kwargs['runtime_args']['port'][http_idx] != 8081:
             raise ValueError(
@@ -216,6 +216,7 @@ class NOWGateway(CompositeGateway):
                 'grpc_tracing_server_interceptors',
                 'aio_tracing_client_interceptors',
                 'tracing_client_interceptor',
+                'monitoring',  # disable it for fastapi gateway
             ],
         )
         runtime_args.port = [port]
