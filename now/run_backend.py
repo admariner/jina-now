@@ -138,6 +138,7 @@ def call_flow(
         inital_backoff=2,  # start off with higher value, 5 seconds
         max_backoff=30,  # max backoff of 30 seconds
         backoff_multiplier=1.5,  # exponential increase in backoff
+        timeout=600,  # timeout of 10 minutes
         on_done=kwargs.get('on_done', None),
         on_error=kwargs.get('on_error', None),
         on_always=kwargs.get('on_always', None),
