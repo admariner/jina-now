@@ -1,4 +1,4 @@
-FROM docker.elastic.co/elasticsearch/elasticsearch:8.5.1
+FROM docker.elastic.co/elasticsearch/elasticsearch:8.7.0
 USER root
 RUN apt-get update && apt-get install --no-install-recommends -y gcc g++ git python3 python3-pip
 

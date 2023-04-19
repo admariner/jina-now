@@ -249,17 +249,27 @@ class NOWElasticIndexer(Executor):
             docs_map=docs_map,
             get_score_breakdown=get_score_breakdown,
             score_calculation=score_calculation,
-            metric=self.metric,
             filter=filter,
             query_to_curated_ids=self.query_to_curated_ids,
+            limit=limit,
         )
         for doc, query in es_queries:
-            result = self.es.search(
-                index=self.index_name,
-                query=query,
-                source=True,
-                size=limit,
-            )['hits']['hits']
+            result = []
+            if 'pinned' in query:
+                result = self.es.search(
+                    index=self.index_name,
+                    source=True,
+                    size=limit,
+                    query={'pinned': query['pinned']},
+                )['hits']['hits']
+            if len(result) < limit:
+                result += self.es.search(
+                    index=self.index_name,
+                    query=query.get('query', None),
+                    knn=query.get('knn'),
+                    source=True,
+                    size=limit - len(result),
+                )['hits']['hits']
             doc.matches = convert_es_results_to_matches(
                 query_doc=doc,
                 es_results=result,

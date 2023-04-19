@@ -51,26 +51,29 @@ def test_build_es_queries_default(es_inputs):
         get_score_breakdown=False,
         score_calculation=default_score_calculation,
     )[0]
+    es_query['knn'][0].pop('query_vector')
+    es_query['knn'][1].pop('query_vector')
     print(es_query)
     assert es_query == {
-        'script_score': {
-            'query': {
-                'bool': {
-                    'should': [
-                        {'match_all': {}},
-                        {'multi_match': {'query': 'cat', 'fields': ['title^10']}},
-                    ]
-                }
+        'knn': [
+            {
+                'field': 'title-clip.embedding',
+                'k': 10,
+                'num_candidates': 100,
+                'boost': 1.0,
             },
-            'script': {
-                'source': "1.0 + _score / (_score + 10.0) + 1.0*cosineSimilarity(params.query_query_text_clip, 'title-clip.embedding') + 1.0*cosineSimilarity(params.query_query_text_clip, 'gif-clip.embedding')",
-                'params': {
-                    'query_query_text_clip': query_docs_map['clip'][
-                        0
-                    ].query_text.embedding,
-                },
+            {
+                'field': 'gif-clip.embedding',
+                'k': 10,
+                'num_candidates': 100,
+                'boost': 1.0,
             },
-        }
+        ],
+        'query': {
+            'bool': {
+                'should': [{'multi_match': {'query': 'cat', 'fields': ['title^10']}}]
+            }
+        },
     }
 
 
@@ -92,27 +95,30 @@ def test_build_es_queries_filters(es_inputs):
         score_calculation=default_score_calculation,
         filter=filters,
     )[0]
+    es_query['knn'][0].pop('query_vector')
+    es_query['knn'][1].pop('query_vector')
     assert es_query == {
-        'script_score': {
-            'query': {
-                'bool': {
-                    'should': [
-                        {'multi_match': {'query': 'cat', 'fields': ['title^10']}},
-                    ],
-                    'filter': [
-                        {'terms': {'tags.color': ['red', 'blue']}},
-                    ],
-                }
+        'knn': [
+            {
+                'field': 'title-clip.embedding',
+                'k': 10,
+                'num_candidates': 100,
+                'boost': 1.0,
+                'filter': [{'terms': {'tags.color': ['red', 'blue']}}],
             },
-            'script': {
-                'source': "1.0 + _score / (_score + 10.0) + 1.0*cosineSimilarity(params.query_query_text_clip, 'title-clip.embedding') + 1.0*cosineSimilarity(params.query_query_text_clip, 'gif-clip.embedding')",
-                'params': {
-                    'query_query_text_clip': query_docs_map['clip'][
-                        0
-                    ].query_text.embedding,
-                },
+            {
+                'field': 'gif-clip.embedding',
+                'k': 10,
+                'num_candidates': 100,
+                'boost': 1.0,
+                'filter': [{'terms': {'tags.color': ['red', 'blue']}}],
             },
-        }
+        ],
+        'query': {
+            'bool': {
+                'should': [{'multi_match': {'query': 'cat', 'fields': ['title^10']}}]
+            }
+        },
     }
 
     # test adding text filters
@@ -123,27 +129,30 @@ def test_build_es_queries_filters(es_inputs):
         score_calculation=default_score_calculation,
         filter=filters,
     )[0]
+    es_query['knn'][0].pop('query_vector')
+    es_query['knn'][1].pop('query_vector')
     assert es_query == {
-        'script_score': {
-            'query': {
-                'bool': {
-                    'should': [
-                        {'multi_match': {'query': 'cat', 'fields': ['title^10']}},
-                    ],
-                    'filter': [
-                        {'match': {'tags.color.text_search': 'red'}},
-                    ],
-                }
+        'knn': [
+            {
+                'field': 'title-clip.embedding',
+                'k': 10,
+                'num_candidates': 100,
+                'boost': 1.0,
+                'filter': [{'match': {'tags.color.text_search': 'red'}}],
             },
-            'script': {
-                'source': "1.0 + _score / (_score + 10.0) + 1.0*cosineSimilarity(params.query_query_text_clip, 'title-clip.embedding') + 1.0*cosineSimilarity(params.query_query_text_clip, 'gif-clip.embedding')",
-                'params': {
-                    'query_query_text_clip': query_docs_map['clip'][
-                        0
-                    ].query_text.embedding,
-                },
+            {
+                'field': 'gif-clip.embedding',
+                'k': 10,
+                'num_candidates': 100,
+                'boost': 1.0,
+                'filter': [{'match': {'tags.color.text_search': 'red'}}],
             },
-        }
+        ],
+        'query': {
+            'bool': {
+                'should': [{'multi_match': {'query': 'cat', 'fields': ['title^10']}}]
+            }
+        },
     }
 
 

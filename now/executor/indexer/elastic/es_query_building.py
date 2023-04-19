@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Tuple, Union
 
 from docarray import Document, DocumentArray
 
@@ -57,9 +57,9 @@ def build_es_queries(
     docs_map,
     get_score_breakdown: bool,
     score_calculation: List[Tuple],
-    metric: Optional[str] = 'cosine',
     filter: dict = {},
     query_to_curated_ids: Dict[str, list] = {},
+    limit: int = 10,
 ) -> Dict:
     """
     Build script-score query used in Elasticsearch. To do this, we extract
@@ -74,16 +74,15 @@ def build_es_queries(
         of a query document.
     :param score_calculation: list of nested lists containing (query_field, document_field, matching_method, linear_weight) which define
         how to calculate the score. Note, that the matching_method is the name of the encoder or `bm25`.
-    :param metric: metric to use for vector search.
     :param filter: dictionary of filters to apply to the search.
     :param query_to_curated_ids: dictionary mapping query text to list of curated ids.
+    :param limit: number of results to return.
     :return: a dictionary containing query and filter.
     """
     queries = {}
     pinned_queries = {}
     docs = {}
-    sources = {}
-    script_params = defaultdict(dict)
+    ann = defaultdict(list)
     for executor_name, da in docs_map.items():
         for doc in da:
             if doc.id not in docs:
@@ -101,14 +100,6 @@ def build_es_queries(
                     query_to_curated_ids,
                 )
 
-                if any(
-                    _matching_method == 'bm25'
-                    for (_, _, _matching_method, _) in score_calculation
-                ):
-                    sources[doc.id] = '1.0 + _score / (_score + 10.0)'
-                else:
-                    sources[doc.id] = '1.0'
-
             for (
                 query_field,
                 document_field,
@@ -121,36 +112,29 @@ def build_es_queries(
                         f'{query_field}-{matching_method}'
                     ] = field_doc.embedding
 
-                query_string = f'params.query_{query_field}_{executor_name}'
-                document_string = f'{document_field}-{matching_method}'
+                field_elastic = f'{document_field}-{matching_method}.embedding'
 
-                sources[
-                    doc.id
-                ] += f" + {float(linear_weight)}*{metrics_mapping[metric]}({query_string}, '{document_string}.embedding')"
-
-                script_params[doc.id][
-                    f'query_{query_field}_{executor_name}'
-                ] = field_doc.embedding
+                _knn = {
+                    'field': field_elastic,
+                    'query_vector': field_doc.embedding,
+                    'k': limit,
+                    'num_candidates': limit * 10,
+                    'boost': float(linear_weight),
+                }
+                if 'filter' in queries[doc.id]['bool']:
+                    _knn['filter'] = queries[doc.id]['bool']['filter']
+                ann[doc.id].append(_knn)
 
     es_queries = []
 
     for doc_id, query in queries.items():
-        script_score = {
-            'script_score': {
-                'query': {
-                    'bool': query['bool'],
-                },
-                'script': {
-                    'source': sources[doc_id],
-                    'params': script_params[doc_id],
-                },
-            },
-        }
+        query_json = {'knn': ann[doc_id]}
+        query_bm25 = query['bool']['should']
+        if len(query_bm25) > 0:
+            query_json['query'] = {'bool': {'should': query_bm25}}
+
         if pinned_queries[doc_id]:
-            query_json = {'pinned': pinned_queries[doc_id]['pinned']}
-            query_json['pinned']['organic'] = script_score
-        else:
-            query_json = script_score
+            query_json['pinned'] = pinned_queries[doc_id]['pinned']
         es_queries.append((docs[doc_id], query_json))
     return es_queries
 
@@ -162,13 +146,7 @@ def get_default_query(
 ):
     # only match_all if no filter is applied
     query = {
-        'bool': {
-            'should': []
-            if filter
-            else [
-                {'match_all': {}},
-            ],
-        },
+        'bool': {'should': []},
     }
 
     # build bm25 part
@@ -196,7 +174,12 @@ def get_pinned_query(doc: Document, query_to_curated_ids: Dict[str, list] = {}) 
     if getattr(doc, 'query_text', None):
         query_text = doc.query_text.text
         if query_text in query_to_curated_ids.keys():
-            pinned_query = {'pinned': {'ids': query_to_curated_ids[query_text]}}
+            pinned_query = {
+                'pinned': {
+                    'ids': query_to_curated_ids[query_text],
+                    'organic': {'match_none': {}},
+                },
+            }
     return pinned_query
 
 
