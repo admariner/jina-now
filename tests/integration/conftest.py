@@ -5,10 +5,10 @@ import time
 
 import hubble
 import pytest
-from jcloud.flow import CloudFlow
 from pytest_mock import MockerFixture
 
-from now.deployment.deployment import get_or_create_eventloop, terminate_wolf
+from now.constants import JCLOUD_PHASES
+from now.deployment.deployment import list_all_wolf, terminate_wolf
 
 logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger(__name__)
@@ -94,9 +94,8 @@ def get_flow_id_from_name(flow_name):
     Flow ID is constructed by name + suffix,
     so we look for the correct ID by checking if the ID contains the name.
     """
-    loop = get_or_create_eventloop()
-    jflows = loop.run_until_complete(CloudFlow().list_all())['flows']
+    jflows = list_all_wolf(status=JCLOUD_PHASES)
     for flow in jflows:
-        if flow['status']['phase'] != 'Deleted' and flow_name in flow['id']:
+        if flow_name in flow['id']:
             return flow['id']
     return None

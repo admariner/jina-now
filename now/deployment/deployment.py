@@ -1,6 +1,5 @@
 import asyncio
 import subprocess
-import traceback
 
 from jcloud.flow import CloudFlow
 
@@ -40,18 +39,20 @@ def list_all_wolf(status='Serving', namespace='nowapi'):
     # Transform the JCloud flow response to a much simpler list of dicts
     for flow in jflows:
         try:
-            executor_name = list(flow['status']['endpoints'].keys())[0]
             flows.append(
                 {
                     'id': flow['id'],
-                    'name': flow['status']['endpoints'][executor_name],
+                    'status': flow['status']['phase'],
                     'created_at': flow['ctime'],
+                    'endpoint': '',
                     'finished_at': flow['utime'],
                 }
             )
+            if flow['status']['endpoints']:
+                executor_name = list(flow['status']['endpoints'].keys())[0]
+                flows[-1]['endpoint'] = flow['status']['endpoints'][executor_name]
         except Exception:  # noqa
-            print(f'Failed to parse flow {flow}')
-            traceback.print_exc()
+            print(f'Failed to parse flow {flow["id"]}')
             continue
 
     # filter by namespace - if the namespace is contained in the flow name

@@ -20,3 +20,9 @@ def write_flow_file(flow_yaml_content, new_yaml_file_path):
             allow_unicode=True,
             Dumper=Dumper,
         )
+
+
+def read_flow_file(yaml_file_path):
+    with open(yaml_file_path, 'r') as f:
+        content = JAML.load(f)
+    return content

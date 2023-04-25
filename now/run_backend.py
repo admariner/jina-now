@@ -3,6 +3,8 @@ import uuid
 from copy import deepcopy
 from typing import Dict, Optional
 
+import aiohttp
+import grpc
 import requests
 from docarray import DocumentArray
 from jina.clients import Client
@@ -11,6 +13,7 @@ from now.admin.update_api_keys import update_api_keys
 from now.app.base.app import JinaNOWApp
 from now.constants import ACCESS_PATHS
 from now.data_loading.data_loading import load_data
+from now.deployment.deployment import terminate_wolf
 from now.deployment.flow import deploy_flow
 from now.log import time_profiler
 from now.now_dataclasses import UserInput
@@ -126,23 +129,35 @@ def call_flow(
     request_size = estimate_request_size(dataset, max_request_size)
 
     # Refer to https://docs.jina.ai/concepts/client/transient-errors/ for more details on parameters
-    response = client.post(
-        on=endpoint,
-        request_size=request_size,
-        inputs=dataset,
-        show_progress=True,
-        parameters=parameters,
-        continue_on_error=True,
-        prefetch=100,
-        max_attempts=10,  # max retries for a single request
-        inital_backoff=2,  # start off with higher value, 5 seconds
-        max_backoff=30,  # max backoff of 30 seconds
-        backoff_multiplier=1.5,  # exponential increase in backoff
-        timeout=600,  # timeout of 10 minutes
-        on_done=kwargs.get('on_done', None),
-        on_error=kwargs.get('on_error', None),
-        on_always=kwargs.get('on_always', None),
-    )
+    try:
+        response = client.post(
+            on=endpoint,
+            request_size=request_size,
+            inputs=dataset,
+            show_progress=True,
+            parameters=parameters,
+            continue_on_error=True,
+            prefetch=100,
+            max_attempts=10,  # max retries for a single request
+            inital_backoff=2,  # start off with higher value, 5 seconds
+            max_backoff=30,  # max backoff of 30 seconds
+            backoff_multiplier=1.5,  # exponential increase in backoff
+            timeout=600,  # timeout of 10 minutes
+            on_done=kwargs.get('on_done', None),
+            on_error=kwargs.get('on_error', None),
+            on_always=kwargs.get('on_always', None),
+        )
+    except (
+        grpc.aio.AioRpcError,
+        ConnectionError,
+        aiohttp.ClientConnectorCertificateError,
+    ) as e:  # noqa
+        host_id = client.args.host
+        flow_id = host_id.replace('https://', '').split('.')[0].replace('-http', '')
+        print(f'Error while indexing. Deleting the flow {flow_id}')
+        # delete the flow since this is unsuccessful
+        terminate_wolf(flow_id)
+        raise e
 
     if return_results:
         return response

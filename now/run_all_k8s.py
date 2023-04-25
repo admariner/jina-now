@@ -11,23 +11,24 @@ from rich.table import Column, Table
 
 from now import run_backend
 from now.compare.compare_flows import compare_flows_for_queries
-from now.constants import DEMO_NS, FLOW_STATUS
+from now.constants import DEMO_NS, FLOW_STATUS, JCLOUD_PHASES
 from now.deployment import deployment
 from now.dialog import configure_user_input, maybe_prompt_user
 
 
 def stop_now(**kwargs):
-    _result, flow_id, cluster = get_flow_status(action='delete', **kwargs)
-    if _result is not None and _result['status']['phase'] == FLOW_STATUS:
-        deployment.terminate_wolf(flow_id)
-        from hubble import Client
+    flow_info = get_flow_status(action='delete', **kwargs)
+    if flow_info is not None:
+        deployment.terminate_wolf(flow_info['id'])
+        if flow_info['status'] == FLOW_STATUS:
+            from hubble import Client
 
-        cookies = {'st': Client().token}
-        requests.delete(
-            f'https://storefrontapi.nowrun.jina.ai/api/v1/schedule_sync/{flow_id}',
-            cookies=cookies,
-        )
-    cowsay.cow(f'remote Flow `{cluster}` removed')
+            cookies = {'st': Client().token}
+            requests.delete(
+                f'https://storefrontapi.nowrun.jina.ai/api/v1/schedule_sync/{flow_info["id"]}',
+                cookies=cookies,
+            )
+    cowsay.cow(f'Flow `{flow_info["endpoint"] or flow_info["id"]}` deleted')
 
 
 def start_now(**kwargs):
@@ -171,12 +172,12 @@ def compare_flows(**kwargs):
     )
 
 
-def get_flow_status(action, **kwargs):
+def get_flow_status(action, namespace='nowapi', **kwargs):
     choices = []
     # Add all remote Flows that exists with the namespace `nowapi`
-    alive_flows = deployment.list_all_wolf()
+    alive_flows = deployment.list_all_wolf(status=JCLOUD_PHASES, namespace=namespace)
     for flow_details in alive_flows:
-        choices.append(flow_details['name'])
+        choices.append(flow_details['id'])
     if len(choices) == 0:
         cowsay.cow(f'nothing to {action}')
         return
@@ -184,19 +185,15 @@ def get_flow_status(action, **kwargs):
         questions = [
             {
                 'type': 'list',
-                'name': 'cluster',
-                'message': f'Which cluster do you want to {action}?',
+                'name': 'flow_id',
+                'message': f'Which flow do you want to {action}?',
                 'choices': choices,
             }
         ]
-        cluster = maybe_prompt_user(questions, 'cluster', **kwargs)
+        flow_id = maybe_prompt_user(questions, 'flow_id', **kwargs)
 
-    flow = [x for x in alive_flows if x['name'] == cluster][0]
-    flow_id = flow['id']
-    _result = deployment.status_wolf(flow_id)
-    if _result is None:
-        print(f'❎ Flow not found in JCloud. Likely, it has been deleted already')
-    return _result, flow_id, cluster
+    flow = [x for x in alive_flows if x['id'] == flow_id][0]
+    return flow
 
 
 def _generate_info_table(gateway_host_http, bff_url, playground_url, user_input):

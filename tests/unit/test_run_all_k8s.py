@@ -14,13 +14,15 @@ class MMDocarray:
 def test_flow_status(mocker: MockerFixture):
     mocker.patch(
         'now.deployment.deployment.list_all_wolf',
-        return_value=[{'name': 'test', 'id': 1}],
+        return_value=[
+            {'id': 'test-2133dfs44f4', 'status': 'Serving', 'endpoint': 'test'}
+        ],
     )
-    mocker.patch(
-        'now.deployment.deployment.status_wolf',
-        return_value='SUCCEEDED',
-    )
-    _, flow_id, _ = get_flow_status(action='delete', cluster='test')
+    flow = get_flow_status(action='delete', flow_id='test-2133dfs44f4')
+    assert flow['id'] == 'test-2133dfs44f4'
+    assert flow['status'] == 'Serving'
+    assert flow['id'] == 'test-2133dfs44f4'
+    assert flow['endpoint'] == 'test'
 
 
 def _mock_post_response(mock_post):
@@ -97,7 +99,7 @@ def test_stop(mocker: MockerFixture):
     mock_response.json.return_value = {'message': 'DELETED'}
 
     def _mock_flow_status():
-        return {'status': {'phase': 'Serving'}}, 'flow_id', 'cluster'
+        return {'id': 'flow_id', 'status': 'Serving', 'endpoint': 'endpoint'}
 
     mocker.patch(
         'now.run_all_k8s.get_flow_status',

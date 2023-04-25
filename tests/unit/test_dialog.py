@@ -199,6 +199,7 @@ def test_configure_user_input(
     expected_user_input.__dict__.update(cli_kwargs)
     expected_user_input.__dict__.pop('app')
     expected_user_input.__dict__.pop('model_selection', None)
+    expected_user_input.__dict__.update({'flow_name': None})
     for key in [
         'label_model',
         'image_model',
@@ -213,6 +214,7 @@ def test_configure_user_input(
     user_input = configure_user_input(**cli_kwargs)
     user_input.__dict__.update({'jwt': None, 'admin_emails': None})
     user_input.__dict__.update({'app_instance': None})
+    user_input.__dict__.update({'flow_name': None})
 
     assert user_input == expected_user_input
 

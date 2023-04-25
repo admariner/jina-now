@@ -18,7 +18,7 @@ from now.common.detect_schema import (
     set_field_names_from_local_folder,
     set_field_names_from_s3_bucket,
 )
-from now.constants import MODALITY_TO_MODELS, DatasetTypes
+from now.constants import DEFAULT_FLOW_NAME, MODALITY_TO_MODELS, DatasetTypes
 from now.deployment.deployment import cmd
 from now.log import yaspin_extended
 from now.now_dataclasses import DialogOptions, UserInput
@@ -87,9 +87,10 @@ def clean_flow_name(user_input: UserInput):
     """
     Clean the flow name to make it valid, removing special characters and spaces.
     """
-    user_input.flow_name = ''.join(
-        [c for c in user_input.flow_name or '' if c.isalnum() or c == '-']
-    ).lower()
+    f_name = user_input.flow_name
+    uuid_prefix = str(uuid.uuid4())[:5]
+    f_name = f"{uuid_prefix}-{DEFAULT_FLOW_NAME if not f_name else ''.join([c for c in f_name if c.isalnum() or c == '-']).lower()}"
+    user_input.flow_name = f_name
 
 
 DATASET_TYPE = DialogOptions(

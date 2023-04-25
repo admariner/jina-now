@@ -6,7 +6,6 @@ from docarray import DocumentArray
 from jina import __version__ as jina_version
 from jina.logging.logger import JinaLogger
 
-from now.app.base.create_jcloud_name import create_jcloud_name
 from now.app.base.preprocess import preprocess
 from now.constants import DEMO_NS, NOW_GATEWAY_VERSION
 from now.demo_data import DemoDataset
@@ -176,7 +175,7 @@ class JinaNOWApp:
             'jcloud': {
                 'version': jina_version,
                 'labels': {'team': 'now'},
-                'name': create_jcloud_name(user_input.flow_name),
+                'name': user_input.flow_name,
                 'monitor': {
                     'traces': {'enable': True},
                 },

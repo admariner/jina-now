@@ -173,6 +173,9 @@ class SearchApp(JinaNOWApp):
                     'provision-index': provision_index,
                     'provision-shards': provision_shards,
                     'provision-replicas': provision_replicas,
+                    'provision-target-es-cluster': "NOW_DEV_CLUSTER"
+                    if 'NOW_CI_RUN' in os.environ
+                    else "NOW_PROD_CLUSTER",
                 },
                 'resources': {'instance': 'C2', 'capacity': 'spot'},
             },
