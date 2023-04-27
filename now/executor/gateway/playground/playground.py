@@ -189,7 +189,11 @@ def render_filters(params):
 
     if st.session_state.tags:
         st.sidebar.title('Filters')
-        for tag, values in st.session_state.tags.items():
+        for tag, values in [
+            (tag, values)
+            for tag, values in st.session_state.tags.items()
+            if len(values)
+        ]:
             if isinstance(values[0], int) or isinstance(values[0], float):
                 min_val = min(values)
                 max_val = max(values)
