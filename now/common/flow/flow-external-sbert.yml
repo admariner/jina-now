@@ -5,7 +5,7 @@ with:
     JINA_LOG_LEVEL: DEBUG
 jcloud:
   name: flow-external-sbert
-  version: '3.15.0'
+  version: '3.15.1.dev21'
   labels:
     team: now
 gateway:

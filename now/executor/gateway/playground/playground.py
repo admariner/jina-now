@@ -20,7 +20,6 @@ from streamlit.runtime.scriptrunner import add_script_run_ctx
 from streamlit.web.server.server import Server
 from tornado.httputil import parse_cookie
 
-from now.app.base.create_jcloud_name import create_jcloud_name
 from now.constants import (
     MODALITY_TO_MODELS,
     NOW_ELASTIC_FETCH_MAX_VALUES_PER_TAG,
@@ -290,7 +289,7 @@ def render_auth_components(params):
 
 def _do_login(params):
     flow_namespace = os.environ.get("K8S_NAMESPACE_NAME", "").split('-')[1]
-    jcloud_name = create_jcloud_name(params.flow_name) + '-' + flow_namespace
+    jcloud_name = user_input.flow_name + '-' + flow_namespace
     host = f'https://{jcloud_name}-http.wolf.jina.ai/playground'
     redirect_uri = f'{host}/playground/'
     if 'top_k' in st.experimental_get_query_params():

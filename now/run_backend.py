@@ -3,8 +3,6 @@ import uuid
 from copy import deepcopy
 from typing import Dict, Optional
 
-import aiohttp
-import grpc
 import requests
 from docarray import DocumentArray
 from jina.clients import Client
@@ -147,15 +145,11 @@ def call_flow(
             on_error=kwargs.get('on_error', None),
             on_always=kwargs.get('on_always', None),
         )
-    except (
-        grpc.aio.AioRpcError,
-        ConnectionError,
-        aiohttp.ClientConnectorCertificateError,
-    ) as e:  # noqa
+    except BaseException as e:  # noqa
+        # Catch all exceptions and delete the flow until we can guarantee stability
         host_id = client.args.host
         flow_id = host_id.replace('https://', '').split('.')[0].replace('-http', '')
         print(f'Error while indexing. Deleting the flow {flow_id}')
-        # delete the flow since this is unsuccessful
         terminate_wolf(flow_id)
         raise e
 

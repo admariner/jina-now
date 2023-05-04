@@ -4,9 +4,9 @@ from docarray.typing import Image, Text, Video
 
 from now.utils.common.helpers import BetterEnum
 
-NOW_GATEWAY_VERSION = '0.0.7-fix-playground-empty-filters'
-NOW_PREPROCESSOR_VERSION = '0.0.128-fix-delete-failed-flow-4'
-NOW_ELASTIC_INDEXER_VERSION = '0.0.151-fix-delete-failed-flow-4'
+NOW_GATEWAY_VERSION = '0.0.7-fix-update-jina-v-1'
+NOW_PREPROCESSOR_VERSION = '0.0.128-fix-update-jina-v-1'
+NOW_ELASTIC_INDEXER_VERSION = '0.0.151-fix-update-jina-v-1'
 
 
 class Apps(BetterEnum):
