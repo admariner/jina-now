@@ -88,9 +88,13 @@ def clean_flow_name(user_input: UserInput):
     Clean the flow name to make it valid, removing special characters and spaces.
     """
     f_name = user_input.flow_name
-    uuid_prefix = str(uuid.uuid4())[:5]
-    f_name = f"{uuid_prefix}-{DEFAULT_FLOW_NAME if not f_name else ''.join([c for c in f_name if c.isalnum() or c == '-']).lower()}"
-    user_input.flow_name = f_name
+    uuid_prefix = str(uuid.uuid4())[:4]
+    flow_name = f"{uuid_prefix}-{DEFAULT_FLOW_NAME}"
+    if f_name:
+        f_name = ''.join([c for c in f_name if c.isalnum() or c == '-']).lower()
+        flow_name = f"{uuid_prefix}-{f_name}-{DEFAULT_FLOW_NAME}"
+
+    user_input.flow_name = flow_name
 
 
 DATASET_TYPE = DialogOptions(
