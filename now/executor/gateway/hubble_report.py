@@ -99,6 +99,11 @@ def report(quantity_basic, quantity_pro, auth_jwt=None):
                     'appId': 'search-app',
                     'feeType': 'search-fee',
                     'source': 'gateway',
+                    'planType': product_id,
+                    'flowId': os.environ.get('FLOW_ID'),
+                    'flowNamespace': 'jnamespace-'
+                    + os.environ.get('K8S_NAMESPACE_NAME', ''),
+                    'timeNow': current_time(),
                 },
             )
             logger.info(f'**** `{round(quantity, 3)}` credits charged ****')

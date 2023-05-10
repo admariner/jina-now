@@ -23,6 +23,7 @@ def test_report_usage(
     cost,
     num_report_usage_calls,
 ):
+    mocker.patch('now.executor.gateway.hubble_report.current_time', return_value='1234')
     mocker.patch.object(
         PaymentClient, 'get_authorized_jwt', return_value={'data': 'dummy_token'}
     )
@@ -56,5 +57,9 @@ def test_report_usage(
                 'appId': 'search-app',
                 'feeType': 'search-fee',
                 'source': 'gateway',
+                'planType': internal_product_id,
+                'flowId': None,
+                'flowNamespace': 'jnamespace-',
+                'timeNow': '1234',
             },
         )
