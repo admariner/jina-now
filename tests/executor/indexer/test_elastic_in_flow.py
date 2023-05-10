@@ -33,10 +33,11 @@ def flow(random_index_name, metas):
             self.preprocessor = NOWPreprocessor()
             self.encoder = DummyEncoder()
             self.indexer = NOWElasticIndexer(
-                hosts='http://localhost:9200',
-                index_name=random_index_name,
                 document_mappings=DOCUMENT_MAPPINGS,
                 user_input_dict={
+                    'index_fields': ['title'],
+                    'index_field_candidates_to_modalities': {'title': 'text'},
+                    'field_names_to_dataclass_fields': {'title': 'title'},
                     'filter_fields': ['color', 'greeting'],
                 },
             )
@@ -82,10 +83,6 @@ class TestElasticIndexer:
             query_text: Text
 
         return DocumentArray(Document(MMQuery(query_text='query_1')))
-
-    @pytest.fixture
-    def random_index_name(self):
-        return f"test-index-{random.randint(0, 10000)}"
 
     @pytest.fixture(scope='function', autouse=True)
     def metas(self, tmpdir):
@@ -166,11 +163,11 @@ class TestElasticIndexer:
             on='/search',
             inputs=docs_query,
             return_results=True,
-            parameters={'filter': {'tags__price': {'$lt': 50.0}}},
+            parameters={'filter': {'tags__price': {'lt': 50.0}}},
         )
         assert all([m.tags['price'] < 50 for m in query_res[0].matches])
 
-    def test_delete(self, metas, setup_service_running, random_index_name, flow):
+    def test_delete(self, metas, setup_service_running, flow):
         docs = self.get_docs(NUMBER_OF_DOCS)
         docs[0].tags['parent_tag'] = 'different_value'
         flow.post(on='/index', inputs=docs)
@@ -178,7 +175,7 @@ class TestElasticIndexer:
         assert len(listed_docs) == NUMBER_OF_DOCS
         flow.post(
             on='/delete',
-            parameters={'filter': {'tags__parent_tag': {'$eq': 'different_value'}}},
+            parameters={'filter': {'tags__parent_tag': ['different_value']}},
         )
         listed_docs = flow.post(on='/list', return_results=True)
         assert len(listed_docs) == NUMBER_OF_DOCS - 1
@@ -188,11 +185,10 @@ class TestElasticIndexer:
     def test_get_tags(self, metas, setup_service_running, flow):
         docs = self.get_docs(NUMBER_OF_DOCS)
         flow.post(on='/index', inputs=docs)
-        response = flow.post(on='/tags')
-        assert response[0].text == 'tags'
-        assert 'tags' in response[0].tags
-        assert 'color' in response[0].tags['tags']
-        assert sorted(response[0].tags['tags']['color']) == sorted(['red', 'blue'])
+        response = flow.post(on='/filters')
+        assert 'filters' in response[0].tags
+        assert 'color' in response[0].tags['filters']
+        assert sorted(response[0].tags['filters']['color']) == sorted(['red', 'blue'])
 
     def test_delete_tags(self, metas, setup_service_running, flow):
         docs = self.get_docs(NUMBER_OF_DOCS)
@@ -202,19 +198,18 @@ class TestElasticIndexer:
         )
         flow.post(
             on='/delete',
-            parameters={'filter': {'tags__color': {'$eq': 'blue'}}},
+            parameters={'filter': {'tags__color': ['blue']}},
         )
-        response = flow.post(on='/tags')
-        assert response[0].text == 'tags'
-        assert 'tags' in response[0].tags
-        assert 'color' in response[0].tags['tags']
-        assert 'blue' not in response[0].tags['tags']['color']
+        response = flow.post(on='/filters')
+        assert 'filters' in response[0].tags
+        assert 'color' in response[0].tags['filters']
+        assert 'blue' not in response[0].tags['filters']['color']
         flow.post(
             on='/delete',
-            parameters={'filter': {'tags__greeting': {'$eq': 'hello'}}},
+            parameters={'filter': {'tags__greeting': ['hello']}},
         )
-        response = flow.post(on='/tags')
-        assert 'hello' not in response[0].tags['tags']['greeting']
+        response = flow.post(on='/filters')
+        assert 'hello' not in response[0].tags['filters']['greeting']
 
     @pytest.fixture()
     def documents(self):
@@ -320,7 +315,6 @@ class TestElasticIndexer:
             protocol=['http'],
             port=[8081],
             env={'JINA_LOG_LEVEL': 'DEBUG'},
-            uses_with={'with_playground': False},
         ).add(
             uses=NOWElasticIndexer,
             uses_with={
@@ -363,11 +357,11 @@ class TestElasticIndexer:
             parameters={
                 'query_to_filter': {
                     'query_1': [
-                        {'text': {'$eq': 'parent_1'}},
-                        {'tags__color': {'$eq': 'red'}},
+                        {'title': ['parent_1']},
+                        {'tags__color': ['red']},
                     ],
                     'query_2': [
-                        {'text': {'$eq': 'parent_2'}},
+                        {'title': ['parent_2']},
                     ],
                 }
             },
@@ -389,9 +383,7 @@ class TestElasticIndexer:
         non_curated_query[0].query_text.text = 'parent_x'
         flow.post(on='/search', inputs=non_curated_query)
 
-    def test_curate_endpoint_incorrect(
-        self, metas, setup_service_running, random_index_name, flow
-    ):
+    def test_curate_endpoint_incorrect(self, metas, setup_service_running, flow):
         with pytest.raises(Exception):
             flow.post(
                 on='/curate',

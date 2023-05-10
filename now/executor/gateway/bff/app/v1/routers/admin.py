@@ -19,12 +19,16 @@ async def update_user_email(data: UpdateEmailsRequestModel):
     """
     Update the list of emails for the security executor
     """
-    await jina_client_post(
-        request_model=data,
-        docs=Document(),
-        endpoint='/admin/updateUserEmails',
-        parameters={'user_emails': data.user_emails},
-    )
+    try:
+        await jina_client_post(
+            request_model=data,
+            docs=Document(),
+            endpoint='/admin/updateUserEmails',
+            parameters={'user_emails': data.user_emails},
+        )
+    except BaseException as e:
+        raise HTTPException(status_code=502, detail=str(e))
+    return 'SUCCESS'
 
 
 @router.post(
@@ -35,12 +39,16 @@ async def update_api_keys(data: UpdateApiKeysRequestModel):
     """
     Update the list of api keys for the security executor
     """
-    await jina_client_post(
-        request_model=data,
-        docs=Document(),
-        endpoint='/admin/updateApiKeys',
-        parameters={'api_keys': data.api_keys},
-    )
+    try:
+        await jina_client_post(
+            request_model=data,
+            docs=Document(),
+            endpoint='/admin/updateApiKeys',
+            parameters={'api_keys': data.api_keys},
+        )
+    except BaseException as e:
+        raise HTTPException(status_code=502, detail=str(e))
+    return 'SUCCESS'
 
 
 @router.post(
@@ -58,5 +66,5 @@ async def get_host_status(data: BaseRequestModel):
             endpoint='/dry_run',
         )
     except Exception as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=502, detail=str(e))
     return 'SUCCESS'

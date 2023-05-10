@@ -3,6 +3,7 @@ import requests
 from docarray.typing import Image, Text
 from jina import Client
 from tests.integration.local.conftest import (  # noqa: F401
+    BASE_URL,
     SEARCH_URL,
     get_flow,
     get_request_body,
@@ -22,7 +23,9 @@ from now.constants import ACCESS_PATHS
     ],
     indirect=True,
 )
-def test_end_to_end(get_flow, setup_service_running, random_index_name):
+def test_end_to_end(
+    mock_hubble_billing_report, get_flow, setup_service_running, random_index_name
+):
     docs, user_input = get_flow
     client = Client(host='http://localhost:8081')
 
@@ -32,6 +35,7 @@ def test_end_to_end(get_flow, setup_service_running, random_index_name):
             'access_paths': ACCESS_PATHS,
         },
     )
+
     request_body = get_request_body(secured=False)
     request_body['query'] = [{'name': 'text', 'value': 'test', 'modality': 'text'}]
     response = requests.post(
@@ -56,3 +60,7 @@ def test_end_to_end(get_flow, setup_service_running, random_index_name):
             assert response.json()[0]['fields'][dataclass_field]['text']
         elif user_input.index_field_candidates_to_modalities[field] == Image:
             assert response.json()[0]['fields'][dataclass_field]['blob'] != b''
+
+    count_url = f'{BASE_URL}/search-app/count'
+    count_response = requests.post(count_url, json=request_body)
+    assert count_response.json()['number_of_docs'] == len(docs)

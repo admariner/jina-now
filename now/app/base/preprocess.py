@@ -2,9 +2,37 @@ import io
 
 import numpy as np
 from docarray import Document
+from jina.logging.logger import JinaLogger
 from PIL import Image
 
 NUM_FRAMES_SAMPLED = 3
+
+
+def preprocess(doc: Document, logger: JinaLogger = None) -> Document:
+    """Preprocesses the document by calling the appropriate preprocess function for each chunk.
+    If preprocessing fails, the document is logged and None is returned.
+    """
+    try:
+        for chunk in doc.chunks:
+            if chunk.modality == 'text':
+                preprocess_text(chunk)
+            elif chunk.modality == 'image':
+                preprocess_image(chunk)
+            elif chunk.modality == 'video':
+                preprocess_video(chunk)
+            else:
+                raise ValueError(f'Unsupported modality {chunk.modality}')
+        return doc
+    except Exception as e:
+        doc.summary()
+        chunk.summary()
+        message = f'Failed to preprocess URI: {chunk.uri}' if chunk.uri else ''
+        message += f'\nError: {e}'
+        if logger:
+            logger.info(message)
+        else:
+            print(message)
+        return None
 
 
 def preprocess_text(
@@ -25,7 +53,7 @@ def preprocess_text(
     from nltk.tokenize import sent_tokenize
 
     # TODO HACK (needs to be provided as general feature
-    d.text = 'loading' if d.text.lower() == 'loader' else d.text
+    d.text = 'loading' if d.text and d.text.lower() == 'loader' else d.text
 
     if not d.text and d.uri:
         d.load_uri_to_text(timeout=10)

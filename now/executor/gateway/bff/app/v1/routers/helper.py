@@ -9,7 +9,7 @@ import filetype
 from docarray import Document, DocumentArray
 from docarray.typing import Text
 from fastapi import HTTPException, status
-from jina.serve.streamer import GatewayStreamer
+from jina.serve.runtimes.gateway.streamer import GatewayStreamer
 
 from now.constants import SUPPORTED_FILE_TYPES
 
@@ -27,7 +27,6 @@ def field_dict_to_mm_doc(
     :param field_names_to_dataclass_fields: mapping of field names to data class fields (e.g. {'title': 'text_0'})
     :return: multi-modal document
     """
-
     with TemporaryDirectory() as tmp_dir:
         try:
             if field_names_to_dataclass_fields:
@@ -76,9 +75,13 @@ def field_dict_to_mm_doc(
                     )
             doc = Document(data_class(**data_class_kwargs))
         except BaseException as e:
+            import traceback
+
+            traceback.print_exc()
             raise HTTPException(
                 status_code=500,
-                detail=f'Not a correctly encoded request. Please see the error stack for more information. \n{e}',
+                detail=f'Not a correctly encoded request. '
+                f'Please see the error stack for more information. \n{traceback.format_exc()}',
             )
 
     return doc

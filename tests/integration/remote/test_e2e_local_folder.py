@@ -1,11 +1,11 @@
-import json
 from argparse import Namespace
 
 import pytest
 from tests.integration.remote.assertions import (
     assert_deployment_queries,
     assert_deployment_response,
-    assert_suggest,
+    assert_indexed_all_docs,
+    assert_info_endpoints,
     get_search_request_body,
 )
 
@@ -17,11 +17,12 @@ from now.constants import DatasetTypes, Models
 @pytest.mark.timeout(60 * 10)
 def test_end_to_end(
     cleanup,
+    random_flow_name,
     pulled_local_folder_data,
 ):
     kwargs = {
         'now': 'start',
-        'flow_name': 'nowapi',
+        'flow_name': random_flow_name,
         'dataset_type': DatasetTypes.PATH,
         'admin_name': 'team-now',
         'dataset_path': pulled_local_folder_data,
@@ -35,13 +36,10 @@ def test_end_to_end(
     }
     kwargs = Namespace(**kwargs)
     response = cli(args=kwargs)
-    # Dump the flow details from response host to a tmp file
-    flow_details = {'host': response['host']}
-    with open(f'{cleanup}/flow_details.json', 'w') as f:
-        json.dump(flow_details, f)
 
     assert_deployment_response(response)
     assert_deployment_queries(
+        index_fields=['image.png', 'test.txt'],
         kwargs=kwargs,
         response=response,
         search_modality='text',
@@ -50,5 +48,6 @@ def test_end_to_end(
         kwargs=kwargs,
         search_modality='text',
     )
-    suggest_url = f'{response["host"]}/api/v1/search-app/suggestion'
-    assert_suggest(suggest_url, request_body)
+    additional_url = f'{response["host_http"]}/api/v1/search-app'
+    assert_info_endpoints(additional_url, request_body)
+    assert_indexed_all_docs(response['host_http'], kwargs=kwargs, limit=10)

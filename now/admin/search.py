@@ -5,9 +5,9 @@ from jina import Client
 API_KEY = 'my_key'
 
 url = f"https://nowrun.jina.ai/api/v1/search-app/search"
-host = 'grpcs://nowapi-c74eae8ebe.wolf.jina.ai'
+host = 'https://nowapi-c74eae8ebe.wolf.jina.ai'
 url = 'http://localhost:8080/api/v1/search-app/search'
-host = 'grpc://0.0.0.0'
+host = 'http://0.0.0.0'
 port = 9090
 direct = False
 

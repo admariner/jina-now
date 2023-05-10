@@ -7,7 +7,6 @@ import pytest
 import requests
 from docarray import Document, DocumentArray, dataclass
 from docarray.typing import Image, Text
-from pytest_mock import MockerFixture
 
 from now.app.search_app import SearchApp
 from now.constants import DatasetTypes
@@ -17,9 +16,10 @@ from now.data_loading.create_dataclass import (
     update_dict_with_no_overwrite,
 )
 from now.data_loading.data_loading import (
-    _list_files_from_s3_bucket,
     from_files_local,
+    list_files_from_s3_bucket,
     load_data,
+    validate_shrink_data,
 )
 from now.demo_data import AVAILABLE_DATASETS, DemoDatasetNames
 from now.now_dataclasses import UserInput
@@ -39,23 +39,6 @@ def da() -> DocumentArray:
     )
 
 
-@pytest.fixture(autouse=True)
-def mock_download(mocker: MockerFixture, da: DocumentArray):
-    def fake_download(url: str, filename: str) -> str:
-        da.save_binary(filename)
-        return filename
-
-    mocker.patch('now.utils.download', fake_download)
-
-
-@pytest.fixture(autouse=True)
-def mock_pull(mocker: MockerFixture, da: DocumentArray):
-    def fake_pull(secret: str, admin_name: str) -> DocumentArray:
-        return da
-
-    mocker.patch('now.data_loading.data_loading._pull_docarray', fake_pull)
-
-
 @pytest.fixture()
 def local_da(da: DocumentArray, tmpdir: str) -> Tuple[str, DocumentArray]:
     save_path = os.path.join(tmpdir, 'da.bin')
@@ -72,12 +55,35 @@ def is_da_text_equal(da_a: DocumentArray, da_b: DocumentArray):
     return True
 
 
+def test_validate_shrink_data():
+    temp_file_paths = [
+        "folder1/file1.png",
+        "folder1/file2.json",
+        "folder2/file3.png",
+        "folder3/file4.png",
+        "folder3/file5.json",
+        "folder4/file6.txt",
+    ]
+
+    expected_output = [
+        "folder1/file1.png",
+        "folder1/file2.json",
+        "folder3/file4.png",
+        "folder3/file5.json",
+    ]
+
+    actual_output = validate_shrink_data(temp_file_paths)
+
+    assert actual_output == expected_output
+
+
 def test_da_local_path(local_da: Tuple[str, DocumentArray]):
     path, da = local_da
     user_input = UserInput()
     user_input.dataset_type = DatasetTypes.PATH
     user_input.dataset_path = path
     user_input.index_fields = ['description']
+    user_input.index_field_candidates_to_modalities = {'description': Text}
 
     loaded_da = load_data(user_input)
     assert loaded_da[0].tags == {}
@@ -96,7 +102,7 @@ def test_da_local_path_image_folder(image_resource_path: str):
     data_class, user_input.field_names_to_dataclass_fields = create_dataclass(
         user_input=user_input
     )
-    loaded_da = load_data(user_input, data_class)
+    loaded_da = load_data(user_input)
 
     assert len(loaded_da) == 2, (
         f'Expected two images, got {len(loaded_da)}.'
@@ -112,13 +118,13 @@ def test_da_custom_ds(da: DocumentArray):
     user_input.dataset_type = DatasetTypes.DEMO
     user_input.dataset_name = DemoDatasetNames.DEEP_FASHION
     user_input.admin_name = 'team-now'
-    user_input.index_fields = ['description']
+    user_input.index_fields = ['image']
 
     loaded_da = load_data(user_input)
 
     assert len(loaded_da) > 0
     for doc in loaded_da:
-        assert doc.tags == {}
+        assert 'label' in doc.tags
         assert doc.chunks
 
 
@@ -150,7 +156,8 @@ def test_from_files_local(resources_folder_path):
         assert doc.chunks[0].uri
 
 
-def test_from_subfolders_s3(get_aws_info):
+@pytest.mark.parametrize('return_content', [True])
+def test_from_sub_folders_s3(get_aws_info, return_content):
     user_input = UserInput()
     (
         user_input.dataset_path,
@@ -180,7 +187,15 @@ def test_from_subfolders_s3(get_aws_info):
         user_input=user_input
     )
 
-    loaded_da = _list_files_from_s3_bucket(user_input, data_class)
+    loaded_da = list_files_from_s3_bucket(
+        user_input, data_class, return_file_content=return_content
+    )
+    if return_content:
+        loaded_da, content = loaded_da
+        assert content is not None
+        assert isinstance(content, dict)
+        assert len(content) == 10
+
     assert len(loaded_da) == 10
     for doc in loaded_da:
         assert doc.chunks[0].uri

@@ -1,11 +1,11 @@
-import argparse
 import base64
+import gc
 import io
+import json
 import os
-from collections import OrderedDict
+import traceback
 from typing import List
-from urllib.error import HTTPError
-from urllib.parse import quote, unquote
+from urllib.parse import quote
 from urllib.request import urlopen
 
 import extra_streamlit_components as stx
@@ -15,25 +15,27 @@ import streamlit.components.v1 as components
 from better_profanity import profanity
 from docarray import Document, DocumentArray
 from docarray.typing import Image, Text
-from jina import Client
+from streamlit.runtime import Runtime
 from streamlit.runtime.scriptrunner import add_script_run_ctx
 from streamlit.web.server.server import Server
 from tornado.httputil import parse_cookie
 
-from now.constants import MODALITY_TO_MODELS
-from now.executor.gateway.playground.src.constants import (
-    BUTTONS,
-    S3_DEMO_PATH,
-    SSO_COOKIE,
-    SURVEY_LINK,
-    ds_set,
+from now.constants import (
+    MODALITY_TO_MODELS,
+    NOW_ELASTIC_FETCH_MAX_VALUES_PER_TAG,
+    NOWGATEWAY_BFF_PORT,
 )
+from now.executor.gateway.playground.src.constants import BUTTONS, SSO_COOKIE
 from now.executor.gateway.playground.src.search import (
+    call_flow,
     get_query_params,
     multimodal_search,
 )
+from now.now_dataclasses import UserInput
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
+
+from now.executor.gateway.playground.logger import logger
 
 # HEADER
 st.set_page_config(page_title='NOW', page_icon='https://jina.ai/favicon.ico')
@@ -87,7 +89,7 @@ def toggle_score_breakdown():
         st.session_state.show_score_breakdown = False
 
 
-def deploy_streamlit(secured: bool):
+def deploy_streamlit(user_input: UserInput):
     """
     We want to provide the end-to-end experience to the user.
     Please deploy a streamlit playground on k8s/local to access the api.
@@ -96,10 +98,13 @@ def deploy_streamlit(secured: bool):
     # Start with setting up the vars default values then proceed to placing UI components
     # Set up session state vars if not already set
     setup_session_state()
+    logger.info("*** Deploying streamlit ***")
 
     # Retrieve query params
     params = get_query_params()
-    setattr(params, 'secured', secured)
+    # update query params with user input
+    for key, val in user_input.dict().items():
+        setattr(params, key, val)
     redirect_to = render_auth_components(params)
 
     _, mid, _ = st.columns([0.8, 1, 1])
@@ -113,103 +118,144 @@ def deploy_streamlit(secured: bool):
     if redirect_to and st.session_state.login:
         nav_to(redirect_to)
     else:
-        da_img, da_txt = load_example_queries(params.data)
-
         setup_design()
 
-        client = Client(host='localhost', port=8082, protocol='http')
-
-        if params.host:
-            if st.session_state.filters == 'notags':
-                try:
-                    tags = get_info_from_endpoint(client, params, endpoint='/tags')[
-                        'tags'
-                    ]
-                    st.session_state.filters = tags
-                except Exception as e:
-                    print("Filters couldn't be loaded from the endpoint properly.", e)
-                    st.session_state.filters = 'notags'
         if not st.session_state.index_fields_dict:
-            # get index fields from user input
-            try:
-                index_fields_dict = get_info_from_endpoint(
-                    client,
-                    params,
-                    endpoint='/get_encoder_to_fields',
-                )['index_fields_dict']
-                field_names_to_dataclass_fields = get_info_from_endpoint(
-                    client,
-                    params,
-                    endpoint='/get_encoder_to_fields',
-                )['field_names_to_dataclass_fields']
-                st.session_state.index_fields_dict = index_fields_dict
-                st.session_state.field_names_to_dataclass_fields = (
-                    field_names_to_dataclass_fields
-                )
-            except Exception as e:
-                print(
-                    "Index fields couldn't be loaded from the endpoint properly. "
-                    "Semantic scores will be automatically defined.",
-                    e,
-                )
+            st.session_state.index_fields_dict = get_info_from_endpoint(
+                params, 'encoder_to_dataclass_fields_mods'
+            )
+            st.session_state.field_names_to_dataclass_fields = (
+                user_input.field_names_to_dataclass_fields
+            )
 
-        filter_selection = {}
-        if st.session_state.filters != 'notags':
-            st.sidebar.title('Filters')
-            if not st.session_state.filters_set:
-                for tag, values in st.session_state.filters.items():
-                    values.insert(0, 'All')
-                    filter_selection[tag] = st.sidebar.selectbox(tag, values)
-                st.session_state.filters_set = True
-            else:
-                for tag, values in st.session_state.filters.items():
-                    filter_selection[tag] = st.sidebar.selectbox(tag, values)
-
-        if st.session_state.filters != 'notags' and not st.session_state.filters_set:
-            st.sidebar.title('Filters')
-            for tag, values in st.session_state.filters.items():
-                values.insert(0, 'All')
-                filter_selection[tag] = st.sidebar.selectbox(tag, values)
-        l, r = st.columns([5, 5])
-        with l:
-            st.header('Text')
-            render_mm_query(st.session_state['query'], 'text')
-        with r:
-            st.header('Image')
-            render_mm_query(st.session_state['query'], 'image')
-
-        customize_semantic_scores()
+        render_filters(params)
+        render_input_boxes()
+        customize_score_calculation()
         toggle_score_breakdown()
-
-        if st.button('Search', key='mm_search', on_click=clear_match):
+        # make query
+        search_mapping_list = list(st.session_state['query'].values())
+        if any([d['value'] for d in search_mapping_list]):
             st.session_state.matches = multimodal_search(
                 query_field_values_modalities=list(
-                    filter(
-                        lambda x: x['value'], list(st.session_state['query'].values())
-                    )
+                    filter(lambda x: x['value'], search_mapping_list)
                 ),
                 jwt=st.session_state.jwt_val,
-                filter_dict=filter_selection,
+                filter_dict=st.session_state.filter_selection,
             )
         render_matches()
 
         add_social_share_buttons()
 
 
-def get_info_from_endpoint(client, params, endpoint) -> dict:
+def render_input_boxes():
+    l, r = st.columns([5, 5])
+    with l:
+        st.header('Text')
+        render_mm_query(st.session_state['query'], 'text')
+    with r:
+        st.header('Image')
+        render_mm_query(st.session_state['query'], 'image')
+
+
+def process_filters():
+    processed_filters = {}
+    for field, values in st.session_state.filter_selection.items():
+        if isinstance(values, list) or isinstance(values, tuple):
+            if len(values) == 0:
+                continue
+            if isinstance(values[0], str):
+                processed_filters[field] = values
+            elif isinstance(values[0], int) or isinstance(values[0], float):
+                processed_filters[field] = {'gte': values[0], 'lte': values[1]}
+        elif isinstance(values, int) or isinstance(values, float):
+            processed_filters[field] = {'gte': values}
+        elif isinstance(values, str):
+            if values != '':
+                processed_filters[field] = values
+        else:
+            raise ValueError(f'Filter values {values} are not supported.')
+    st.session_state.filter_selection = processed_filters
+
+
+def render_filters(params):
+    if not st.session_state.tags:
+        try:
+            tags = get_info_from_endpoint(params, endpoint='filters')
+            st.session_state.tags = tags
+        except Exception:  # noqa
+            print("Filters couldn't be loaded from the endpoint properly.")
+            traceback.print_exc()
+
+    if st.session_state.tags:
+        st.sidebar.title('Filters')
+        for tag, values in [
+            (tag, values)
+            for tag, values in st.session_state.tags.items()
+            if len(values)
+        ]:
+            if isinstance(values[0], int) or isinstance(values[0], float):
+                min_val = min(values)
+                max_val = max(values)
+                st.session_state.filter_selection[tag] = st.sidebar.slider(
+                    tag, min_val, max_val, (min_val, max_val)
+                )
+            elif isinstance(values[0], str):
+                if len(values) < NOW_ELASTIC_FETCH_MAX_VALUES_PER_TAG:
+                    st.session_state.filter_selection[tag] = st.sidebar.multiselect(
+                        tag, values
+                    )
+                else:
+                    st.session_state.filter_selection[tag] = st.sidebar.text_input(tag)
+        st.session_state.filters_set = True
+
+    process_filters()
+
+
+def get_info_from_endpoint(params, endpoint) -> dict:
+    parameters = {}
     if params.secured:
-        response = client.post(
-            on=endpoint,
-            parameters={'jwt': {'token': st.session_state.jwt_val['token']}},
-        )
-    else:
-        response = client.post(on=endpoint)
-    return OrderedDict(response[0].tags)
+        parameters['jwt'] = {'token': st.session_state.jwt_val['token']}
+    response = call_flow(
+        f'http://localhost:{NOWGATEWAY_BFF_PORT}/api/v1/search-app/{endpoint}',
+        parameters,
+        endpoint,
+    )
+    # return the first value of the response as it's a dict with one key
+    return list(response.values())[0]
+
+
+# hack to access cookies in streamlit: https://github.com/streamlit/streamlit/issues/5166#issuecomment-1259901215
+# can also use https://gist.github.com/asehmi/85c293df44d32957fb31a7cd332c3398 but this one is shorter
+def st_runtime():
+
+    global _st_runtime
+
+    if _st_runtime:
+        return _st_runtime
+
+    for obj in gc.get_objects():
+        if type(obj) is Runtime:
+            _st_runtime = obj
+            return _st_runtime
+
+
+_st_runtime = None
+runtime = st_runtime()
+
+
+def get_cookie(cookie_name):
+    session_id = add_script_run_ctx().streamlit_script_run_ctx.session_id
+    session_info = runtime._get_session_info(session_id)
+    header = session_info.client.request.headers
+    cookie_strings = [header_str for k, header_str in header.get_all() if k == 'Cookie']
+    parsed_cookies = {k: v for c in cookie_strings for k, v in parse_cookie(c).items()}
+
+    return parsed_cookies.get(cookie_name, '')
 
 
 def render_auth_components(params):
     if params.secured:
-        st_cookie = get_cookie_value(cookie_name=SSO_COOKIE)
+        st_cookie = get_cookie(SSO_COOKIE)
         resp_jwt = requests.get(
             url=f'https://api.hubble.jina.ai/v2/rpc/user.identity.whoami',
             cookies={SSO_COOKIE: st_cookie},
@@ -217,7 +263,6 @@ def render_auth_components(params):
         redirect_to = None
         if resp_jwt['code'] != 200:
             redirect_to = _do_login(params)
-
         else:
             st.session_state.login = False
             if not st.session_state.jwt_val:
@@ -243,18 +288,10 @@ def render_auth_components(params):
 
 
 def _do_login(params):
-    # Whether it is fail or success, clear the query param
-    query_params_var = {
-        'host': unquote(params.host),
-        'data': params.data,
-    }
-    if params.secured:
-        query_params_var['secured'] = params.secured
-    if 'top_k' in st.experimental_get_query_params():
-        query_params_var['top_k'] = params.top_k
-    st.experimental_set_query_params(**query_params_var)
-
-    redirect_uri = f'{params.host}/playground'
+    flow_namespace = os.environ.get("K8S_NAMESPACE_NAME", "").split('-')[1]
+    jcloud_name = user_input.flow_name + '-' + flow_namespace
+    host = f'https://{jcloud_name}-http.wolf.jina.ai/playground'
+    redirect_uri = f'{host}/playground/'
     if 'top_k' in st.experimental_get_query_params():
         redirect_uri += f'?top_k={params.top_k}'
 
@@ -280,18 +317,6 @@ def _do_logout():
         'https://api.hubble.jina.ai/v2/rpc/user.session.dismiss',
         headers=headers,
     )
-
-
-def load_example_queries(data):
-    da_img = None
-    da_txt = None
-    if data in ds_set:
-        try:
-            da_img = load_data(S3_DEMO_PATH + data + f'.img10.bin')
-            da_txt = load_data(S3_DEMO_PATH + data + f'.txt10.bin')
-        except HTTPError as exc:
-            print('Could not load samples for the demo dataset', exc)
-    return da_img, da_txt
 
 
 def setup_design():
@@ -337,19 +362,13 @@ def setup_design():
     )
 
 
-def delete_semantic_scores():
-    st.session_state['len_semantic_scores'] = 0
-    st.session_state.semantic_scores = {}
-
-
-def toggle_bm25_slider():
-    if st.session_state.show_bm25_slider:
-        st.session_state.show_bm25_slider = False
-    else:
-        st.session_state.show_bm25_slider = True
+def delete_score_calculation():
+    st.session_state['len_score_calculation'] = 0
+    st.session_state.score_calculation = {}
 
 
 def get_encoder_options(q_field: str, id_field: str) -> List[str]:
+    id_field = st.session_state.field_names_to_dataclass_fields[id_field]
     encoders_options = [
         encoder
         for encoder in st.session_state.index_fields_dict.keys()
@@ -364,53 +383,21 @@ def get_encoder_options(q_field: str, id_field: str) -> List[str]:
     return list(set(encoders_options) & set(modality_models))
 
 
-def customize_semantic_scores():
+def customize_score_calculation():
     input_modalities = [
         field['modality'] for field in list(st.session_state.query.values())
     ]
-    add, delete, bm25 = st.columns([0.3, 0.3, 0.3])
-    if add.button('Add semantic score', key='sem_score_button'):
-        st.session_state['len_semantic_scores'] += 1
-    if st.session_state.len_semantic_scores > 0:
+    add, delete = st.columns([0.3, 0.3])
+    if add.button('Add score calculation', key='sem_score_button'):
+        st.session_state['len_score_calculation'] += 1
+    if st.session_state.len_score_calculation > 0:
         delete.button(
-            label='Delete all semantic scores',
+            label='Delete all score calculation',
             key='delete',
-            on_click=delete_semantic_scores,
+            on_click=delete_score_calculation,
         )
-    if 'text' in input_modalities and any(
-        field_mod == 'text'
-        for field_mod in [
-            st.session_state.index_fields_dict[encoder][field]
-            for encoder in st.session_state.index_fields_dict.keys()
-            for field in st.session_state.index_fields_dict[encoder].keys()
-        ]
-    ):
-        bm25.button('Add bm25 score', key='bm25', on_click=toggle_bm25_slider)
-        if st.session_state.show_bm25_slider:
-            query_field_selectbox, bm25_slider = st.columns([0.5, 0.5])
-            q_field = query_field_selectbox.selectbox(
-                'Select query field for bm25 scoring',
-                options=[
-                    field
-                    for field in st.session_state.query.keys()
-                    if field.startswith('text')
-                ],
-            )
-            bm25_weight = bm25_slider.slider(
-                label='Adjust bm25 weight',
-                min_value=0.0,
-                max_value=1.0,
-                value=0.5,
-                key='weight_bm25',
-            )
-            st.session_state.semantic_scores['bm25'] = [
-                q_field,
-                'bm25_text',
-                'bm25',
-                bm25_weight,
-            ]
 
-    for i in range(st.session_state['len_semantic_scores']):
+    for i in range(st.session_state['len_score_calculation']):
         query_field, index_field, encoder, weight = st.columns([0.25, 0.25, 0.25, 0.25])
         q_field = query_field.selectbox(
             label='query field',
@@ -422,11 +409,10 @@ def customize_semantic_scores():
             options=list(st.session_state.field_names_to_dataclass_fields.keys()),
             key='index_field_' + str(i),
         )
-        id_field = st.session_state.field_names_to_dataclass_fields[id_field]
         encoder_options = get_encoder_options(q_field, id_field)
         enc = encoder.selectbox(
-            label='encoder',
-            options=encoder_options,
+            label='matching method',
+            options=encoder_options + ['bm25'],
             key='encoder_' + str(i),
         )
         w = weight.slider(
@@ -436,15 +422,16 @@ def customize_semantic_scores():
             value=0.5,
             key='weight_' + str(i),
         )
-        st.session_state.semantic_scores[f'{i}'] = (q_field, id_field, enc, w)
+        st.session_state.score_calculation[f'{i}'] = [q_field, id_field, enc, w]
 
 
 def render_mm_query(query, modality):
     if st.button("\+", key=f'add_{modality}_field'):  # noqa: W605
         st.session_state[f"len_{modality}_choices"] += 1
-    if modality == 'text':
-        for field_number in range(st.session_state[f"len_{modality}_choices"]):
-            key = f'{modality}_{field_number}'
+
+    for field_number in range(st.session_state[f"len_{modality}_choices"]):
+        key = f'{modality}_{field_number}'
+        if modality == 'text':
             query[key] = {
                 'name': key,
                 'value': st.text_input(
@@ -455,10 +442,7 @@ def render_mm_query(query, modality):
                 ),
                 'modality': 'text',
             }
-
-    else:
-        for field_number in range(st.session_state[f"len_{modality}_choices"]):
-            key = f'{modality}_{field_number}'
+        else:
             uploaded_image = st.file_uploader(
                 label=f'image #{field_number}', key=key, on_change=clear_match
             )
@@ -487,10 +471,6 @@ def render_mm_query(query, modality):
 def render_matches():
     # TODO function is too large. Split up.
     if st.session_state.matches and not st.session_state.error_msg:
-        if st.session_state.search_count > 2:
-            st.write(
-                f'🔥 How did you like Jina NOW? [Please leave feedback]({SURVEY_LINK}) 🔥'
-            )
         list_matches = [
             st.session_state.matches[i : i + 9]
             for i in range(0, len(st.session_state.matches), 9)
@@ -641,9 +621,7 @@ def decrement_inputs(modality):
 
 
 def clear_match():
-    st.session_state.matches = (
-        None  # TODO move this to when we choose a suggestion or search button
-    )
+    st.session_state.matches = None  # TODO move this to when we choose a search button
     st.session_state.slider = 0.0
     st.session_state.snap = None
     st.session_state.error_msg = None
@@ -770,8 +748,11 @@ def setup_session_state():
     if 'disable_prev' not in st.session_state:
         st.session_state.disable_prev = True
 
-    if 'filters' not in st.session_state:
-        st.session_state.filters = 'notags'
+    if 'tags' not in st.session_state:
+        st.session_state.tags = {}
+
+    if 'filter_selection' not in st.session_state:
+        st.session_state.filter_selection = {}
 
     if 'filters_set' not in st.session_state:
         st.session_state.filters_set = False
@@ -785,8 +766,8 @@ def setup_session_state():
     if "query" not in st.session_state:
         st.session_state['query'] = dict()
 
-    if 'len_semantic_scores' not in st.session_state:
-        st.session_state['len_semantic_scores'] = 0
+    if 'len_score_calculation' not in st.session_state:
+        st.session_state['len_score_calculation'] = 0
 
     if 'index_fields_dict' not in st.session_state:
         st.session_state.index_fields_dict = {}
@@ -797,26 +778,24 @@ def setup_session_state():
     if 'encoder' not in st.session_state:
         st.session_state.encoder = 'clip'
 
-    if 'semantic_scores' not in st.session_state:
-        st.session_state.semantic_scores = {}
-
-    if 'show_bm25_slider' not in st.session_state:
-        st.session_state.show_bm25_slider = False
+    if 'score_calculation' not in st.session_state:
+        st.session_state.score_calculation = {}
 
     if 'show_score_breakdown' not in st.session_state:
         st.session_state.show_score_breakdown = False
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
+    # read user_input from user_input.json in the home directory
+    with open(os.path.join(os.path.expanduser('~'), 'user_input.json'), 'r') as f:
+        user_input_dict = json.load(f)
 
-    parser.add_argument('--secured', action='store_true', help='Makes the flow secured')
-    try:
-        args = parser.parse_args()
-    except SystemExit as e:
-        # This exception will be raised if --help or invalid command line arguments
-        # are used. Currently streamlit prevents the program from exiting normally
-        # so we have to do a hard exit.
-        os._exit(e.code)
+    user_input = UserInput()
+    for attr_name, prev_value in user_input.__dict__.items():
+        setattr(
+            user_input,
+            attr_name,
+            user_input_dict.get(attr_name, prev_value),
+        )
 
-    deploy_streamlit(secured=args.secured)
+    deploy_streamlit(user_input=user_input)

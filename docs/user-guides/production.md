@@ -24,13 +24,6 @@ Then you can provide your `AWS access key ID` and `AWS secret key`, and a list o
 Your data is automatically loaded from the S3 bucket. It will be temporarily stored on EC2 machines while processing the data,
 but it will not be stored permanently.
 
-## Auto-complete suggestions
-
-For applications with text as input modality, we provide the `autocomplete` feature. This feature learns slowly from the user's search requests
-and provides text suggestions. This is how the API looks like if you would like to integrate it into your application: 
-
-<img width="506" alt="autocomplete-api" src="https://user-images.githubusercontent.com/40893766/196951488-7bd5e7c2-1a7b-4933-8e3d-8cedb52b14b7.png">
-
 
 ## Security
 
@@ -63,3 +56,17 @@ To update your API keys use this simple script:
 ```bash
 python now/admin/update_api_keys.py
 ```
+
+## Elasticsearch Index Configuration
+
+NOW uses [Elastic Cloud](https://www.elastic.co/cloud/) as storage backend. Each new app deployment will be provisioned an index, secured with an api key,
+only accessible to the indexer within  the search app. You can configure the index settings such as `shards` and `replicas` by
+setting these as environment variables before deploying your app, for example:
+
+```bash
+export PROVISION_SHARDS=2
+export PROVISION_REPLICAS=1
+```
+
+This will configure the index to have 2 shards and 1 replica. The default values are 1 shard and 0 replicas when these
+environment variables are not set.

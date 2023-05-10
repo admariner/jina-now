@@ -6,7 +6,7 @@ search_text = ''
 limit = 60
 
 
-client = Client(host=f'grpcs://nowapi-{flow_id}.wolf.jina.ai')
+client = Client(host=f'https://nowapi-{flow_id}.wolf.jina.ai')
 
 
 def call():

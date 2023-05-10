@@ -4,7 +4,6 @@ import os
 
 import pytest
 import requests
-from docarray import DocumentArray
 
 from now.admin.utils import get_default_request_body
 from now.demo_data import DemoDatasetNames
@@ -19,20 +18,21 @@ def test_search_image(resources_folder_path: str):
 
 
 def assert_deployment_response(response):
-    host = response['host']
-    assert host.startswith('https://')
-    assert host.endswith('.wolf.jina.ai')
-    assert response['bff'] == f'{host}/api/v1/search-app/docs'
-    assert response['playground'] == f'{host}/playground'
+    host_http = response['host_http']
+    assert host_http.startswith('https://')
+    assert host_http.endswith('.wolf.jina.ai')
+    assert response['bff'] == f'{host_http}/api/v1/search-app/docs'
+    assert response['playground'] == f'{host_http}/playground'
 
 
 def assert_deployment_queries(
+    index_fields,
     kwargs,
     response,
     search_modality,
     dataset=None,
 ):
-    host = response.get('host')
+    host = response.get('host_http')
     url = f'{host}/api/v1'
     # normal case
     request_body = get_search_request_body(
@@ -41,6 +41,11 @@ def assert_deployment_queries(
         dataset=dataset,
     )
     search_url = f'{url}/search-app/search'
+    assert_search(search_url, request_body)
+    # add score calculation to the request body, assert search still works
+    request_body['score_calculation'] = [
+        [request_body['query'][0]['name'], index_fields[0], 'encoderclip', 0.8]
+    ]
     assert_search(search_url, request_body)
 
     if kwargs.secured:
@@ -51,7 +56,9 @@ def assert_deployment_queries(
             f'{url}/admin/updateUserEmails',
             json=request_body,
         )
-        assert response.status_code == 200
+        assert (
+            response.status_code == 200
+        ), f"text: {json.dumps(response.json(), indent=2)}"
 
         # add api key
         del request_body['user_emails']
@@ -89,8 +96,6 @@ def get_search_request_body(
     if search_modality == 'text':
         if dataset == DemoDatasetNames.BEST_ARTWORKS:
             search_text = 'impressionism'
-        elif dataset == DemoDatasetNames.NFT_MONKEY:
-            search_text = 'laser eyes'
         else:
             search_text = 'test'
         request_body['query'] = [
@@ -116,22 +121,20 @@ def assert_search(search_url, request_body, expected_status_code=200):
         assert len(response.json()) == 9
 
 
-def assert_suggest(suggest_url, request_body):
-    old_request_text = request_body.pop('query')
-    request_body['text'] = old_request_text[0]['value']
-    response = requests.post(
-        suggest_url,
-        json=request_body,
-    )
-    assert (
-        response.status_code == 200
-    ), f"Received code {response.status_code} with text: {response.json()['message']}"
-    docs = DocumentArray.from_json(response.content)
-    assert 'suggestions' in docs[0].tags, f'No suggestions found in {docs[0].tags}'
-    assert docs[0].tags['suggestions'] == [old_request_text[0]['value']], (
-        f"Expected suggestions to be {old_request_text[0]['value']} but got "
-        f"{docs[0].tags['suggestions']}"
-    )
+def assert_info_endpoints(additional_url, request_body):
+    info_uris = [
+        'filters',
+        'count',
+        'encoder_to_dataclass_fields_mods',
+    ]
+    for uri in info_uris:
+        response = requests.post(
+            additional_url + '/' + uri,
+            json=request_body,
+        )
+        assert (
+            response.status_code == 200
+        ), f"Received code {response.status_code} with text: {response.json()['message']}"
 
 
 def assert_search_custom_s3(host, mm_type, dataset_length, create_temp_link=False):
@@ -158,6 +161,8 @@ def assert_search_custom_s3(host, mm_type, dataset_length, create_temp_link=Fals
             if field['uri']:
                 if create_temp_link:
                     assert not field['uri'].startswith('s3://'), f"received: {doc}"
+                    response = requests.get(field['uri'])
+                    assert response.status_code == 200
                 else:
                     assert field['uri'].startswith('s3://'), f"received: {doc}"
             assert (
@@ -168,3 +173,15 @@ def assert_search_custom_s3(host, mm_type, dataset_length, create_temp_link=Fals
     if mm_type:
         for doc in response_json:
             assert len(doc['tags']) > 0
+
+
+def assert_indexed_all_docs(host, kwargs, limit: int):
+    request_body = get_default_request_body(secured=kwargs.secured)
+    response = requests.post(
+        f"{host}/api/v1/search-app/count",
+        json=request_body,
+    )
+    response_json = response.json()
+    assert (
+        response_json['number_of_docs'] == limit
+    ), f"Expected {limit} docs but got {response_json['number_of_docs']}\nResponse: {response_json}"

@@ -37,25 +37,6 @@ def set_base_parser():
     return parser
 
 
-def set_help_parser(parser=None):
-    """Set the parser for the jina help lookup
-    :param parser: an optional existing parser to build upon
-    :return: the parser
-    """
-
-    if not parser:
-        from jina.parsers.base import set_base_parser
-
-        parser = set_base_parser()
-
-    parser.add_argument(
-        'query',
-        type=str,
-        help='Lookup the usage & mention of the argument name in Jina NOW',
-    )
-    return parser
-
-
 def set_start_parser(sp):
     """Add the arguments for the jina now to the parser
     :param parser: an optional existing parser to build upon
@@ -138,6 +119,54 @@ def set_logs_parser(sp):
     )
 
 
+def set_compare_parser(sp):
+    parser = sp.add_parser(
+        'compare',
+        help='Compare the performance of different flows.',
+        description='Compare the performance of different flows.',
+        formatter_class=_chf,
+    )
+
+    parser.add_argument(
+        '--path_req_params',
+        help='Path to json file mapping flow ID to key-value pairs for the search request parameters',
+        type=str,
+    )
+
+    parser.add_argument(
+        '--flow_ids',
+        help='Flow IDs to compare',
+        type=str,
+    )
+
+    parser.add_argument(
+        '--dataset',
+        help='Path to local or name of pushed DocArray with the queries in multi-modal format',
+        type=str,
+    )
+
+    parser.add_argument(
+        '--limit',
+        help='Number of results to return',
+        type=int,
+        default=9,
+    )
+
+    parser.add_argument(
+        '--disable_to_datauri',
+        help='Disable converting images to datauri; makes the files smaller but also not self-contained',
+        action='store_true',
+        default=False,
+    )
+
+    parser.add_argument(
+        '--results_per_table',
+        help='Number of results shown per table (default is 20)',
+        type=int,
+        default=20,
+    )
+
+
 def get_main_parser():
     """The main parser for Jina NOW
     :return: the parser
@@ -154,6 +183,7 @@ def get_main_parser():
     set_stop_parser(sp)
     set_survey_parser(sp)
     set_logs_parser(sp)
+    set_compare_parser(sp)
 
     return parser
 

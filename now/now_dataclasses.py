@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, TypeVar, 
 from pydantic import BaseModel, StrictBool
 
 from now.constants import DatasetTypes
-from now.utils import docarray_typing_to_modality_string
+from now.utils.docarray.helpers import docarray_typing_to_modality_string
 
 
 class UserInput(BaseModel):
@@ -22,7 +22,6 @@ class UserInput(BaseModel):
     flow_name: Optional[str] = None
     dataset_type: Optional[DatasetTypes] = None
     dataset_name: Optional[str] = None
-    dataset_url: Optional[str] = None
     dataset_path: Optional[str] = None
 
     # AWS related
@@ -44,7 +43,6 @@ class UserInput(BaseModel):
     es_additional_args: Optional[Dict] = None
 
     # cluster related
-    cluster: Optional[str] = None
     secured: Optional[StrictBool] = False
     jwt: Optional[Dict[str, str]] = None
     admin_name: Optional[str] = None
@@ -83,6 +81,7 @@ class DialogOptions:
     argparse_kwargs: Dict[str, Any] = dataclasses.field(default_factory=dict)
     description: str = None  # Description to show on terminal when used as a cli param
     depends_on: Optional['DialogOptions', StrictBool] = None
+    default: Optional[str] = None
     conditional_check: Callable[[Any], bool] = None
     post_func: Callable[[Any], None] = None
     dynamic_func: Callable[[Any], List[DialogOptions]] = None

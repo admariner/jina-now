@@ -1,27 +1,37 @@
 import json
 import os
+import shutil
 from time import sleep
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 import streamlit.web.bootstrap
 from jina import Gateway
-from jina.serve.runtimes.gateway import CompositeGateway
+from jina.enums import ProtocolType
+from jina.serve.runtimes.gateway.composite import CompositeGateway
 from jina.serve.runtimes.gateway.http.fastapi import FastAPIBaseGateway
-from jina.serve.runtimes.gateway.http.models import JinaHealthModel
+from jina.serve.runtimes.gateway.models import JinaHealthModel
+from streamlit.file_util import get_streamlit_file_path
 from streamlit.web.server import Server as StreamlitServer
 
 from now.constants import NOWGATEWAY_BFF_PORT
-from now.deployment.deployment import cmd
+from now.deployment import deployment
+from now.executor.gateway.hubble_report import init_payment_params
 from now.now_dataclasses import UserInput
 
 cur_dir = os.path.dirname(__file__)
+TIMEOUT = 60
 
 
 class PlaygroundGateway(Gateway):
-    def __init__(self, secured: bool, **kwargs):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.secured = secured
         self.streamlit_script = 'playground/playground.py'
+        # copy playground/config.toml to streamlit config.toml
+        streamlit_config_toml_src = os.path.join(cur_dir, 'playground', 'config.toml')
+        streamlit_config_toml_dest = get_streamlit_file_path("config.toml")
+        # create streamlit_config_toml_dest if it doesn't exist
+        os.makedirs(os.path.dirname(streamlit_config_toml_dest), exist_ok=True)
+        shutil.copyfile(streamlit_config_toml_src, streamlit_config_toml_dest)
 
     async def setup_server(self):
         streamlit.web.bootstrap._fix_sys_path(self.streamlit_script)
@@ -29,12 +39,8 @@ class PlaygroundGateway(Gateway):
         streamlit.web.bootstrap._fix_tornado_crash()
         streamlit.web.bootstrap._fix_sys_argv(self.streamlit_script, ())
         streamlit.web.bootstrap._fix_pydeck_mapbox_api_warning()
-        streamlit_cmd = (
-            f'"python -m streamlit" run --browser.serverPort 12983 {self.streamlit_script} --server.address=0.0.0.0 '
-            f'--server.baseUrlPath /playground '
-        )
-        if self.secured:
-            streamlit_cmd += '-- --secured'
+        streamlit_cmd = f'streamlit run {self.streamlit_script}'
+
         self.streamlit_server = StreamlitServer(
             os.path.join(cur_dir, self.streamlit_script), streamlit_cmd
         )
@@ -50,7 +56,7 @@ class PlaygroundGateway(Gateway):
 
 class BFFGateway(FastAPIBaseGateway):
     @property
-    def app(self):
+    def app(self, **kwargs):
         from now.executor.gateway.bff.app.app import application
 
         # fix to use starlette instead of FastAPI app (throws warning that "/" is used for health checks
@@ -72,34 +78,97 @@ class NOWGateway(CompositeGateway):
     - / -> HTTP gateway on port 8082
     """
 
-    def __init__(
-        self, user_input_dict: str = '', with_playground: bool = True, **kwargs
-    ):
+    def __init__(self, user_input_dict: Dict = {}, **kwargs):
         # need to update port ot 8082, as nginx will listen on 8081
-        kwargs['runtime_args']['port'] = [8082]
+        http_idx = kwargs['runtime_args']['protocol'].index(ProtocolType.HTTP)
+        http_port = kwargs['runtime_args']['port'][http_idx]
+        if kwargs['runtime_args']['port'][http_idx] != 8081:
+            raise ValueError(
+                f'Please, let http port ({http_port}) be 8081 for nginx to work'
+            )
+        kwargs['runtime_args']['port'][http_idx] = 8082
         super().__init__(**kwargs)
+        self.storage_dir = None
+        self.authorized_jwt = None
+
+        # Hacky method since `workspace` class variable is not available in Gateway
+        try:
+            self.storage_dir = [
+                folder
+                for folder in os.listdir('/data')
+                if folder.startswith('jnamespace-')
+            ]
+            if len(self.storage_dir) == 0:
+                self.logger.info('No storage directory found')
+            else:
+                self.logger.info(f'Found storage directory: {self.storage_dir}')
+                self.storage_dir = self.storage_dir[0]
+        except Exception as e:
+            self.logger.info(f'Error while getting storage directory: {e}')
+
+        self._check_env_vars()
 
         self.user_input = UserInput()
-        if not isinstance(user_input_dict, dict) and isinstance(user_input_dict, str):
-            user_input_dict = json.loads(user_input_dict) if user_input_dict else {}
         for attr_name, prev_value in self.user_input.__dict__.items():
             setattr(
                 self.user_input,
                 attr_name,
                 user_input_dict.get(attr_name, prev_value),
             )
+        # we need to write the user input to a file so that the playground can read it; this is a workaround
+        # for the fact that we cannot pass arguments to streamlit (StreamlitServer doesn't respect it)
+        # we also need to do this for the BFF
+        # save user_input to file in home directory of user
+        with open(os.path.join(os.path.expanduser('~'), 'user_input.json'), 'w') as f:
+            json.dump(self.user_input.__dict__, f)
+
+        # remove potential clashing arguments from kwargs
+        kwargs.pop("port", None)
+        kwargs.pop("protocol", None)
 
         # note order is important
-        self._add_gateway(BFFGateway, NOWGATEWAY_BFF_PORT, **kwargs)
-        if with_playground:
-            self._add_gateway(
-                PlaygroundGateway,
-                8501,
-                **{'secured': self.user_input.secured, **kwargs},
-            )
+        self._add_gateway(
+            BFFGateway,
+            NOWGATEWAY_BFF_PORT,
+            **kwargs,
+        )
+        self._add_gateway(
+            PlaygroundGateway,
+            8501,
+            **kwargs,
+        )
 
         self.setup_nginx()
         self.nginx_was_shutdown = False
+
+        if self.storage_dir:
+            if os.path.isfile(f'{self.storage_dir}/cred.json'):
+                self.logger.info('Found cred.json file. Loading from it')
+                with open(f'{self.storage_dir}/cred.json', 'r') as f:
+                    cred_data = json.load(f)
+                    self.authorized_jwt = cred_data.get('authorized_jwt', None)
+            else:
+                self.logger.info('No cred.json file found to load from')
+
+        try:
+            init_payment_params(
+                self.user_input.jwt['token'], self.authorized_jwt, self.storage_dir
+            )
+        except Exception as e:
+            self.logger.error(f'Could not init payment params')
+
+    def _check_env_vars(self):
+        while 'M2M' not in os.environ:
+            timeout_counter = 0
+            if timeout_counter < TIMEOUT:
+                timeout_counter += 5
+                self.logger.info('Environment variables not set yet. Waiting...')
+                sleep(5)
+            else:
+                self.logger.error(
+                    'Gateway environment variables not set after 60 seconds. Exiting...'
+                )
+                raise Exception('Gateway environment variables not set')
 
     async def shutdown(self):
         await super().shutdown()
@@ -127,20 +196,28 @@ class NOWGateway(CompositeGateway):
 
     def _run_nginx_command(self, command: List[str]) -> Tuple[bytes, bytes]:
         self.logger.info(f'Running command: {command}')
-        output, error = cmd(command)
+        output, error = deployment.cmd(command)
         if error != b'':
             # on CI we need to use sudo; using NOW_CI_RUN isn't good if running test locally
             self.logger.info(f'nginx error: {error}')
             command.insert(0, 'sudo')
             self.logger.info(f'So running command: {command}')
-            output, error = cmd(command)
+            output, error = deployment.cmd(command)
         sleep(10)
         return output, error
 
     def _add_gateway(self, gateway_cls, port, protocol='http', **kwargs):
         # ignore metrics_registry since it is not copyable
         runtime_args = self._deepcopy_with_ignore_attrs(
-            self.runtime_args, ['metrics_registry']
+            self.runtime_args,
+            [
+                'metrics_registry',
+                'tracer_provider',
+                'grpc_tracing_server_interceptors',
+                'aio_tracing_client_interceptors',
+                'tracing_client_interceptor',
+                'monitoring',  # disable it for fastapi gateway
+            ],
         )
         runtime_args.port = [port]
         runtime_args.protocol = [protocol]

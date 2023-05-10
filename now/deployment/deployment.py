@@ -3,8 +3,13 @@ import subprocess
 
 from jcloud.flow import CloudFlow
 
+from now.log.log import logger
+
 
 def deploy_wolf(path: str):
+    # print file content from the path
+    with open(path) as f:
+        logger.debug(f'deploy yaml on wolf:\n{f.read()}')
     return CloudFlow(path=path).__enter__()
 
 
@@ -33,10 +38,23 @@ def list_all_wolf(status='Serving', namespace='nowapi'):
     jflows = loop.run_until_complete(CloudFlow().list_all(phase=status))['flows']
     # Transform the JCloud flow response to a much simpler list of dicts
     for flow in jflows:
-        executor_name = list(flow['status']['endpoints'].keys())[0]
-        flows.append(
-            {'id': flow['id'], 'name': flow['status']['endpoints'][executor_name]}
-        )
+        try:
+            flows.append(
+                {
+                    'id': flow['id'],
+                    'status': flow['status']['phase'],
+                    'created_at': flow['ctime'],
+                    'endpoint': '',
+                    'finished_at': flow['utime'],
+                }
+            )
+            if flow['status']['endpoints']:
+                executor_name = list(flow['status']['endpoints'].keys())[0]
+                flows[-1]['endpoint'] = flow['status']['endpoints'][executor_name]
+        except Exception:  # noqa
+            print(f'Failed to parse flow {flow["id"]}')
+            continue
+
     # filter by namespace - if the namespace is contained in the flow name
     if namespace:
         return [f for f in flows if namespace in f['id']]

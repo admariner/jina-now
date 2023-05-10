@@ -1,5 +1,4 @@
 import inspect
-import logging
 import time
 from contextlib import contextmanager
 from datetime import timedelta
@@ -8,7 +7,7 @@ from typing import Callable
 
 from fastapi import HTTPException
 
-logger = logging.getLogger(__name__)
+from now.executor.gateway.bff.logger import logger
 
 
 @contextmanager
@@ -55,7 +54,6 @@ def api_method(func: Callable):
     @wraps(func)
     def surround(*args, **kwargs):
         func_name = inspect.getmodule(func).__name__ + f':{func.__name__}'
-        logger.info(f'--- Calling api method {func_name} ...')
         try:
             response = func(*args, **kwargs)
         except HTTPException as exc:

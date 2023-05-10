@@ -1,15 +1,19 @@
-import json
 import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Dict, List, Optional, Tuple, TypeVar
 
 from docarray import DocumentArray
 from jina import __version__ as jina_version
+from jina.logging.logger import JinaLogger
 
-from now.app.base.preprocess import preprocess_image, preprocess_text, preprocess_video
-from now.constants import DEFAULT_FLOW_NAME, DEMO_NS, NOW_GATEWAY_VERSION, PREFETCH_NR
+from now.app.base.preprocess import preprocess
+from now.constants import DEMO_NS, NOW_GATEWAY_VERSION
 from now.demo_data import DemoDataset
 from now.executor.name_to_id_map import name_to_id_map
 from now.now_dataclasses import DialogOptions, UserInput
+
+JINA_LOG_LEVEL = os.environ.get("JINA_LOG_LEVEL", "DEBUG")
+GATEWAY_LOG_LEVEL = os.environ.get("GATEWAY_LOG_LEVEL", JINA_LOG_LEVEL)
 
 
 class JinaNOWApp:
@@ -105,39 +109,58 @@ class JinaNOWApp:
                         type=str,
                     )
 
-    def get_gateway_stub(self, user_input) -> Dict:
+    def get_gateway_stub(self, user_input, testing=False) -> Dict:
         """Returns the stub for gateway in the flow."""
         gateway_stub = {
-            'uses': f'jinahub+docker://{name_to_id_map.get("NOWGateway")}/{NOW_GATEWAY_VERSION}',
+            'uses': f'jinahub+docker://{name_to_id_map.get("NOWGateway")}/{NOW_GATEWAY_VERSION}'
+            if not testing
+            else 'NOWGateway',
             'protocol': ['http'],
             'port': [8081],
-            'monitoring': True,
             'cors': True,
-            'prefetch': PREFETCH_NR,
-            'uses_with': {'user_input_dict': json.dumps(user_input.to_safe_dict())},
-            'env': {'JINA_LOG_LEVEL': 'DEBUG'},
+            'uses_with': {'user_input_dict': user_input.to_safe_dict()},
+            'env': {'JINA_LOG_LEVEL': GATEWAY_LOG_LEVEL},
+            'timeout_send': 1000 * 180,
+            'jcloud': {
+                'labels': {
+                    'app': 'gateway',
+                },
+                'resources': {
+                    'instance': 'C2',
+                    'capacity': 'spot',
+                    'storage': {
+                        'kind': 'efs',
+                        'size': '1M',
+                    },  # storage to persist user tokens
+                },
+            },
         }
         if 'NOW_EXAMPLES' in os.environ:
-            gateway_stub['jcloud'][
-                'custom_dns'
-            ] = f'{DEMO_NS.format(user_input.dataset_name.split("/")[-1])}.dev.jina.ai'
+            # noinspection PyTypeChecker
+            gateway_stub['jcloud'].update(
+                {
+                    'custom_dns_http': [
+                        f'{DEMO_NS.format(user_input.dataset_name.split("/")[-1])}.dev.jina.ai'
+                    ]
+                }
+            )
         return gateway_stub
 
-    def get_executor_stubs(self, dataset, user_input, **kwargs) -> Dict:
+    def get_executor_stubs(self, user_input, testing=False, **kwargs) -> Dict:
         """
         Returns the stubs for the executors in the flow.
         """
         raise NotImplementedError()
 
-    def setup(self, dataset: DocumentArray, user_input: UserInput) -> Dict:
+    def setup(self, user_input: UserInput, testing=False, **kwargs) -> Dict:
         """Runs before the flow is deployed to setup the flow in self.flow_yaml.
         Common use cases:
             - create a database
             - finetune a model + push the artifact
             - notify other services
             - check if starting the app is currently possible
-        :param dataset:
         :param user_input: user configuration based on the given options
+        :param testing: use local executors if True
         """
         # Creates generic configuration such as labels in the flow
         # Keep this function as simple as possible. It should only be used to add generic configuration needed
@@ -146,22 +169,23 @@ class JinaNOWApp:
             'jtype': 'Flow',
             'with': {
                 'name': 'nowapi',
-                'env': {'JINA_LOG_LEVEL': 'DEBUG'},
+                'monitoring': True,
+                'env': {'JINA_LOG_LEVEL': GATEWAY_LOG_LEVEL},
             },
             'jcloud': {
                 'version': jina_version,
                 'labels': {'team': 'now'},
-                'name': user_input.flow_name + '-' + DEFAULT_FLOW_NAME
-                if user_input.flow_name != ''
-                and user_input.flow_name != DEFAULT_FLOW_NAME
-                else DEFAULT_FLOW_NAME,
+                'name': user_input.flow_name,
+                'monitor': {
+                    'traces': {'enable': True},
+                },
             },
-            'gateway': self.get_gateway_stub(user_input),
-            'executors': self.get_executor_stubs(dataset, user_input),
+            'gateway': self.get_gateway_stub(user_input, testing),
+            'executors': self.get_executor_stubs(user_input, testing, **kwargs),
         }
         # Call the gateway stub function to get the gateway for the flow
         # Call the executor stubs function to get the executors for the flow
-        # append user_input and api_keys to all executors except the remote executors
+        # append user_input and api_keys to all executors except the remote ones
         user_input_dict = user_input.to_safe_dict()
         admin_emails = user_input.admin_emails or [] if user_input.secured else []
         user_emails = user_input.user_emails or [] if user_input.secured else []
@@ -181,23 +205,26 @@ class JinaNOWApp:
     def preprocess(
         self,
         docs: DocumentArray,
+        max_workers: int = 1,
+        logger: JinaLogger = None,
     ) -> DocumentArray:
         """Loads and preprocesses every document such that it is ready for indexing."""
-        for doc in docs:
-            for chunk in doc.chunks:
-                try:
-                    if chunk.modality == 'text':
-                        preprocess_text(chunk)
-                    elif chunk.modality == 'image':
-                        preprocess_image(chunk)
-                    elif chunk.modality == 'video':
-                        preprocess_video(chunk)
-                    else:
-                        raise ValueError(f'Unsupported modality {chunk.modality}')
-                except Exception as e:
-                    chunk.summary()
-                    print(e)
-        return docs
+        preprocessed_docs = []
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = []
+            for doc in docs:
+                futures.append(
+                    executor.submit(
+                        preprocess,
+                        doc,
+                        logger,
+                    )
+                )
+            for future in as_completed(futures):
+                result = future.result()
+                if result is not None:
+                    preprocessed_docs.append(result)
+        return DocumentArray(preprocessed_docs)
 
     def is_demo_available(self, user_input) -> bool:
         raise NotImplementedError()
